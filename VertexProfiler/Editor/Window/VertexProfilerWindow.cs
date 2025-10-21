@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
@@ -18,22 +17,13 @@ namespace VertexProfilerTool
         private string UITIleGoResPath = "Assets/VertexProfiler/TestMeshes/";
         private string HeatMapResPath = "Assets/VertexProfiler/Textures/";
         private string TempHeatMapName = "TempHeatMapTex";
-
-        /// <summary>
-        /// 基类
-        /// </summary>
-        private VertexProfilerBase vertexProfilerBase;
-        /// <summary>
-        /// 内置管线版本
-        /// </summary>
-        private VertexProfiler vertexProfiler;
+        
+      
         /// <summary>
         /// URP版本
         /// </summary>
         private VertexProfilerURP vertexProfilerURP;
 
-        private bool urpNameSpaceExist;
-        private bool urpAssetExist;
         
         
         /// <summary>
@@ -131,7 +121,7 @@ namespace VertexProfilerTool
         private MyMultiColumnHeader m_multiColumnHeader;
         private VertexProfilerMultiColumnTreeView m_TreeView;
 
-        [MenuItem("Window/VertexProfilerWindow")]
+        [MenuItem("Window/Analysis/VertexProfilerWindow")]
         public static void ShowWindow()
         {
             var window = GetWindow<VertexProfilerWindow>();
@@ -139,7 +129,6 @@ namespace VertexProfilerTool
             window.minSize = new Vector2(800, 600);
             window.maxSize = new Vector2(1400, 1200);
             window.InitGUIStyle();
-            window.CheckURPResource();
             window.InitRes();
             window.CheckShowAddVertexProfilerBtn(true);
             window.UpdateResToVertexProfiler();
@@ -177,35 +166,6 @@ namespace VertexProfilerTool
             contentStyle = new GUIStyle(EditorStyles.largeLabel);
         }
         
-        /// <summary>
-        /// 检查当前的项目工程是否有URP环境,暂定仅打开Window时检查
-        /// </summary>
-        private void CheckURPResource()
-        {
-            urpNameSpaceExist = VertexProfilerEditorUtil.NamespaceExists("UnityEngine.Rendering.Universal");
-            if (urpNameSpaceExist)
-            {
-                urpAssetExist = UniversalRenderPipeline.asset != null;
-            }
-            else
-            {
-                urpAssetExist = false;
-            }
-            // Debug.LogErrorFormat("urpNameSpaceExist = {0}", urpNameSpaceExist);
-        }
-
-        /// <summary>
-        /// 是否需要用URP的版本来展示界面
-        /// </summary>
-        /// <returns></returns>
-        private bool NeedUseURPVersion(bool onlyCheck = true)
-        {
-            if (onlyCheck)
-            {
-                return urpNameSpaceExist && urpAssetExist;
-            }
-            return urpNameSpaceExist && urpAssetExist && (vertexProfilerBase == null || !vertexProfilerBase.isURP); 
-        }
         
         private void InitRes()
         {
@@ -275,10 +235,10 @@ namespace VertexProfilerTool
             if (GUILayout.Button("应用颜色渐变到热力图Ramp"))
             {
                 // 生成纹理，替换热力图ramp
-                var texture = VertexProfilerEditorUtil.ConvertGradientToTexture(vertexProfilerBase.HeatMapGradient);
+                var texture = VertexProfilerEditorUtil.ConvertGradientToTexture(vertexProfilerURP.HeatMapGradient);
                 texture.name = TempHeatMapName;
                 serializedObject.ApplyModifiedProperties();
-                vertexProfilerBase.HeatMapTex = texture;
+                vertexProfilerURP.HeatMapTex = texture;
                 serializedObject.Update();
                 
                 // 存储这份纹理到本地
@@ -308,18 +268,13 @@ namespace VertexProfilerTool
         // 判断是否需要显示添加脚本按钮
         private bool CheckShowAddVertexProfilerBtn(bool onlyCheck = false)
         {
-            vertexProfilerBase = vertexProfilerBase != null ? vertexProfilerBase : FindObjectOfType<VertexProfilerBase>();
+	        vertexProfilerURP = vertexProfilerURP != null ? vertexProfilerURP : FindObjectOfType<VertexProfilerURP>();
             Camera mainCamera = Camera.main;
-            if (vertexProfilerBase != null && mainCamera != null)
+            if (vertexProfilerURP != null && mainCamera != null)
             {
-                if (vertexProfilerBase.isURP)
-                {
-                    vertexProfilerURP = FindObjectOfType<VertexProfilerURP>();
-                }
-                else
-                {
-                    vertexProfiler = FindObjectOfType<VertexProfiler>();
-                }
+               
+	            vertexProfilerURP = FindObjectOfType<VertexProfilerURP>();
+	            
                 if (!fullyInited) // 每次都初始化太耗了,加上一个if判断优化
                 {
                     UpdateResToVertexProfiler();
@@ -352,16 +307,9 @@ namespace VertexProfilerTool
                 if (GUILayout.Button("给主摄像机挂载VertexProfiler"))
                 {
                     var cameraTran = mainCamera.transform;
-                    if (NeedUseURPVersion())
-                    {
-                        vertexProfilerURP = cameraTran.AddComponent<VertexProfilerURP>();
-                        vertexProfilerBase = vertexProfilerURP;
-                    }
-                    else
-                    {
-                        vertexProfiler = cameraTran.AddComponent<VertexProfiler>();
-                        vertexProfilerBase = vertexProfiler;
-                    }
+                    
+	                vertexProfilerURP = cameraTran.gameObject.AddComponent<VertexProfilerURP>();
+                    
                     UpdateResToVertexProfiler();
                 }
             }
@@ -371,15 +319,15 @@ namespace VertexProfilerTool
 
         private void UpdateResToVertexProfiler()
         {
-            if (vertexProfilerBase != null)
+            if (vertexProfilerURP != null)
             {
                 fullyInited = true;
                 
-                vertexProfilerBase.MainCamera = Camera.main;
-                vertexProfilerBase.CalculateVertexByTilesCS = CalculateVertexByTilesCS;
-                vertexProfilerBase.GenerateProfilerRTCS = GenerateProfilerRTCS;
-                vertexProfilerBase.GoUITile = GoUITile;
-                vertexProfilerBase.HeatMapTex = HeatmapDefaultTexture;
+                vertexProfilerURP.MainCamera = Camera.main;
+                vertexProfilerURP.CalculateVertexByTilesCS = CalculateVertexByTilesCS;
+                vertexProfilerURP.GenerateProfilerRTCS = GenerateProfilerRTCS;
+                vertexProfilerURP.GoUITile = GoUITile;
+                vertexProfilerURP.HeatMapTex = HeatmapDefaultTexture;
                 logTickTimer = 0.99f; // 保证第一次刷新不会隔太久
 
                 InitSerializedObject();
@@ -388,14 +336,11 @@ namespace VertexProfilerTool
 
         private void InitSerializedObject()
         {
-            if (vertexProfilerBase.isURP && vertexProfilerURP != null)
+            if (vertexProfilerURP != null)
             {
                 serializedObject = new SerializedObject(vertexProfilerURP);
             }
-            else if(!vertexProfilerBase.isURP && vertexProfiler != null)
-            {
-                serializedObject = new SerializedObject(vertexProfiler);
-            }
+            
             // serializedObject = new SerializedObject(vertexProfilerBase);
             if (serializedObject != null)
             {
@@ -410,12 +355,12 @@ namespace VertexProfilerTool
                 HeatMapRange = serializedObject.FindProperty("HeatMapRange");
                 HeatMapStep = serializedObject.FindProperty("HeatMapStep");
                 HeatMapGradient = serializedObject.FindProperty("HeatMapGradient");
-                ECullMode = serializedObject.FindProperty("ProfilerMode.ECullMode");
+                ECullMode = serializedObject.FindProperty("ECullMode");
                 HeatMapRampMin = serializedObject.FindProperty("HeatMapRampMin");
                 HeatMapRampMax = serializedObject.FindProperty("HeatMapRampMax");
                 
-                ProfilerModeDensityList = serializedObject.FindProperty("ProfilerMode.DensityList");
-                NeedSyncColorRangeSetting = serializedObject.FindProperty("ProfilerMode.NeedSyncColorRangeSetting");
+                ProfilerModeDensityList = serializedObject.FindProperty("DensityList");
+                NeedSyncColorRangeSetting = serializedObject.FindProperty("NeedSyncColorRangeSetting");
 
                 NeedUpdateUITileGrid = serializedObject.FindProperty("NeedUpdateUITileGrid");
                 NeedRecollectRenderers = serializedObject.FindProperty("NeedRecollectRenderers");
@@ -487,13 +432,7 @@ namespace VertexProfilerTool
             
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(EnableProfiler, c_EnableProfiler);
-            if (!vertexProfilerBase.isURP)
-            {
-                if (GUILayout.Button("如果出现效果不对，点击重新生成新的调试Shader"))
-                {
-                    ReplaceShaderGenerator.GenerateNewReplaceShader();
-                }
-            }
+            
             if (EditorGUI.EndChangeCheck())
             {
                 if (EnableProfiler.boolValue)
@@ -530,7 +469,7 @@ namespace VertexProfilerTool
                 if (EditorGUI.EndChangeCheck())
                 {
                     serializedObject.ApplyModifiedProperties();
-                    vertexProfilerBase.CheckShowUIGrid();
+                    vertexProfilerURP.CheckShowUIGrid();
                 }
                 if (!HideGoTUITile.boolValue)
                 {
@@ -539,7 +478,7 @@ namespace VertexProfilerTool
                     if (EditorGUI.EndChangeCheck())
                     {
                         serializedObject.ApplyModifiedProperties();
-                        vertexProfilerBase.SetTileNumShow();
+                        vertexProfilerURP.SetTileNumShow();
                     }
                 }
                 EditorGUILayout.EndHorizontal();
@@ -820,7 +759,7 @@ namespace VertexProfilerTool
         /// </summary>
         private void UpdateColumnComponent()
         {
-            if (vertexProfilerBase == null || serializedObject == null || EDisplayType == null) return;
+            if (vertexProfilerURP == null || serializedObject == null || EDisplayType == null) return;
             // Check if it already exists (deserialized from window layout file or scriptable object)
             if (m_TreeViewState == null)
                 m_TreeViewState = new TreeViewState();
@@ -1040,7 +979,7 @@ namespace VertexProfilerTool
         /// </summary>
         private void UpdateProfilerLogData()
         {
-            if (vertexProfilerBase == null || serializedObject == null || LastLogFrameCount == null || EDisplayType == null || m_TreeViewState == null) return;
+            if (vertexProfilerURP == null || serializedObject == null || LastLogFrameCount == null || EDisplayType == null || m_TreeViewState == null) return;
             // 当window的framecount不等于log输出时的framecount时，更新window的log数据
             if (LastLogFrameCount.intValue != LastPullLogFrameCount)
             {
@@ -1202,76 +1141,39 @@ namespace VertexProfilerTool
 
         private void ChangeProfilerType(int newProfileType)
         {
-            if (vertexProfilerBase.isURP)
-            {
-                vertexProfilerURP.ChangeProfilerType(newProfileType);
-                return;
-            }
-            vertexProfiler.ChangeProfilerType(newProfileType);
+	        vertexProfilerURP.ChangeProfilerType(newProfileType);
         }
 
         private void StartProfiler()
         {
-            if (vertexProfilerBase.isURP)
-            {
-                vertexProfilerURP.StartProfiler();
-                return;
-            }
-            vertexProfiler.StartProfiler();
+	        vertexProfilerURP.StartProfiler();
         }
         private void StopProfiler()
         {
-            if (vertexProfilerBase.isURP)
-            {
-                vertexProfilerURP.StopProfiler();
-                return;
-            }
-            vertexProfiler.StopProfiler();
+	        vertexProfilerURP.StopProfiler();
         }
 
         private void CheckProfilerMode()
         {
-            if (vertexProfilerBase.isURP)
-            {
-                vertexProfilerURP.CheckProfilerMode();
-                return;
-            }
-            vertexProfiler.CheckProfilerMode();
+	        vertexProfilerURP.CheckProfilerMode();
         }
 
         private void UseDefaultColorRangeSetting()
         {
-            if (vertexProfilerBase.isURP)
-            {
-                vertexProfilerURP.ProfilerMode.UseDefaultColorRangeSetting();
-                return;
-            }
-            vertexProfiler.ProfilerMode.UseDefaultColorRangeSetting();
+	        vertexProfilerURP.ProfilerMode.UseDefaultColorRangeSetting();
         }
 
         private List<int> GetDensityList()
         {
-            if (vertexProfilerBase.isURP)
-            {
-                return vertexProfilerURP.ProfilerMode?.DensityList;
-            }
-            return vertexProfiler.ProfilerMode?.DensityList;
+	        return vertexProfilerURP.ProfilerMode?.DensityList;
         }
 
         private List<ProfilerDataContents> GetLogoutDataList()
         {
-            if (vertexProfilerBase.isURP)
-            {
-                return vertexProfilerURP.LogMode?.logoutDataList;
-            }
-            return vertexProfiler.ProfilerMode?.logoutDataList;
+	        return vertexProfilerURP.LogMode?.logoutDataList;
         }
         private void OnDestroy()
         {
-            if (vertexProfiler != null)
-            {
-                logTickTimer = 0;
-            }
             if (vertexProfilerURP != null)
             {
                 logTickTimer = 0;

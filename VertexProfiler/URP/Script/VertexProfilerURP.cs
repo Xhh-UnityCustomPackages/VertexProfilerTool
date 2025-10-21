@@ -24,7 +24,6 @@ namespace VertexProfilerTool
 
         public VertexProfilerURP()
         {
-            isURP = true;
             VertexProfilerModeBaseRenderPass.vp = this;
             VertexProfilerLogBaseRenderPass.vp = this;
         }
@@ -32,6 +31,12 @@ namespace VertexProfilerTool
         public VertexProfilerModeBaseRenderPass ProfilerMode;
         public VertexProfilerLogBaseRenderPass LogMode;
         public Shader MeshPixelCalShader;
+        
+        [NonReorderable]
+        public List<int> DensityList = new List<int>();
+        public bool NeedSyncColorRangeSetting = true;
+        public CullMode ECullMode = CullMode.Back;
+        
         private void Awake()
         {
             VertexProfilerReplaceShader = Shader.Find("VertexProfiler/URPVertexProfilerReplaceShader");
@@ -99,8 +104,9 @@ namespace VertexProfilerTool
             
             if (ProfilerMode == null || ProfilerMode.EDisplayType != EDisplayType || forceInit)
             {
-                UniversalAdditionalCameraData cameraData = MainCamera.GetUniversalAdditionalCameraData();
-                cameraData.SetRenderer((int)EDisplayType);
+                // TODO 根据模式不同选用不同的RendererFeature Pass 
+                // UniversalAdditionalCameraData cameraData = MainCamera.GetUniversalAdditionalCameraData();
+                // cameraData.SetRenderer((int)EDisplayType);
             }
             CheckShowUIGrid();
         }

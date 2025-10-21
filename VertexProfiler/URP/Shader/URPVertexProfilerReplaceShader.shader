@@ -1,9 +1,5 @@
 ﻿Shader "VertexProfiler/URPVertexProfilerReplaceShader"
 {
-    Properties
-    {
-        _MainTex ("Texture", 2D) = "white" {}
-    }
     SubShader
     {
         Tags { "RenderType"="Opaque"}

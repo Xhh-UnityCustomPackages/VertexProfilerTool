@@ -8,14 +8,6 @@ namespace VertexProfilerTool
 {
     public class VertexProfilerEditorUtil
     {
-        public static bool NamespaceExists(string desiredNamespace)
-        {
-            return AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(a => a.GetTypes())
-                .Any(t => t.Namespace == desiredNamespace);
-        }
-    
-        
         public static bool GetBatchingForPlatform(out bool staticBatching, out bool dynamicBatching)
         {
             BuildTarget activeBuildTarget = EditorUserBuildSettings.activeBuildTarget;

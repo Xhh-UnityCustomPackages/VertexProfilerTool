@@ -278,11 +278,9 @@ namespace VertexProfilerTool
                     mesh = data.mf != null ? data.mf.sharedMesh : mesh;
                     mesh = data.smr != null ? data.smr.sharedMesh : mesh;
                     if(mesh == null) continue; // 没找到mesh对象
-#if UNITY_2020_1_OR_NEWER
+
                     var meshBuffer = RendererCuller.GetGraphicBufferByMesh(mesh);
-#else
-                    var meshBuffer = RendererCuller.GetComputeBufferByMesh(mesh);
-#endif
+
                     if(meshBuffer == null) continue; // 获取不到meshBuffer
                 
                     int count = mesh.vertexCount;
@@ -347,7 +345,7 @@ namespace VertexProfilerTool
             RenderTextureDescriptor desc = new RenderTextureDescriptor(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, 0);
             desc.enableRandomWrite = true;
             VertexProfilerUtil.ReAllocRTIfNeeded(ref m_ScreenshotRT, desc, FilterMode.Point, TextureWrapMode.Clamp, false, name: "ScreenShot");
-            cmd.Blit(colorAttachment, m_ScreenshotRT, vp.GammaCorrectionEffectMat);
+            cmd.Blit(colorAttachmentHandle, m_ScreenshotRT, vp.GammaCorrectionEffectMat);
             
             // 拉取数据，异步回读
             int tileNum = vp.TileNumX * vp.TileNumY;

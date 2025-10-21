@@ -4,7 +4,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Jobs;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -347,7 +346,7 @@ namespace VertexProfilerTool
             RenderTextureDescriptor desc = new RenderTextureDescriptor(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, 0);
             desc.enableRandomWrite = true;
             VertexProfilerUtil.ReAllocRTIfNeeded(ref m_ScreenshotRT, desc, FilterMode.Point, TextureWrapMode.Clamp, false, name: "ScreenShot");
-            cmd.Blit(colorAttachment, m_ScreenshotRT, vp.GammaCorrectionEffectMat);
+            cmd.Blit(colorAttachmentHandle, m_ScreenshotRT, vp.GammaCorrectionEffectMat);
             
             // 拉取数据，异步回读
             cmd.RequestAsyncReadback(VertexProfilerModeBaseRenderPass.m_PixelCounterBuffer,

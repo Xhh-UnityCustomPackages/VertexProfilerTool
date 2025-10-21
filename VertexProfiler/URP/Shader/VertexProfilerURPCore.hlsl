@@ -1,6 +1,7 @@
 #ifndef VERTEX_PROFILER_URP_CORE
 #define VERTEX_PROFILER_URP_CORE
 
+#include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "VertexProfilerModeInclude.hlsl"
 
@@ -135,7 +136,6 @@ half4 DisplayVertexProfilerPS(float3 posWS)
 
 //------------- 替换渲染主要逻辑
 RWTexture2D<uint> TileProfilerRTBuffer : register(u3);
-TEXTURE2D(_MainTex);        SAMPLER(sampler_MainTex);
 struct VP_Arrtibutes
 {
     float4 vertex : POSITION;
@@ -160,7 +160,7 @@ VP_Varyings vert (VP_Arrtibutes v)
 half4 frag (VP_Varyings i) : SV_Target
 {
     // sample the texture
-    half3 col = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv).rgb;
+    half3 col = SAMPLE_TEXTURE2D(_BlitTexture, sampler_LinearClamp, i.uv).rgb;
     half4 profilerColor = DisplayVertexProfilerPS(i.posWS);
     col.rgb = lerp(col.rgb, col.rgb * profilerColor.rgb, profilerColor.a);
 

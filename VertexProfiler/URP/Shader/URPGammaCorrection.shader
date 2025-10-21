@@ -4,10 +4,6 @@
 */
 Shader "VertexProfiler/URPGammaCorrection"
 {
-	Properties
-	{
-		_MainTex ("Texture", 2D) = "white" {}
-	}
 	SubShader
 	{
 		// No culling or depth
@@ -16,18 +12,16 @@ Shader "VertexProfiler/URPGammaCorrection"
 		Pass
 		{
 			HLSLPROGRAM
-			#pragma vertex FullscreenVert
+			#pragma vertex Vert
 			#pragma fragment frag
 			
-			#include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Fullscreen.hlsl"
+			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
 			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-
-			TEXTURE2D_X(_MainTex);
-            SAMPLER(sampler_MainTex);
+			#include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
 			half4 frag (Varyings i) : SV_Target
 			{
-				half4 col = SAMPLE_TEXTURE2D_X(_MainTex, sampler_MainTex, i.uv);
+				half4 col = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.texcoord);
 				col.rgb = pow(col.rgb, 0.454545); // 1.0 / 2.2
 				return col;
 			}

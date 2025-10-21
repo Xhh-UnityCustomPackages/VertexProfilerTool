@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
@@ -52,7 +51,6 @@ namespace VertexProfilerTool
             if (!CheckProfilerEnabled())
             {
                 Shader.SetGlobalInt(VertexProfilerUtil._EnableVertexProfiler, 0);
-                RendererCuller.RevertAllReplaceShader(rendererComponentDatas);
                 return;
             }
 
@@ -60,7 +58,6 @@ namespace VertexProfilerTool
             if (m_RendererNum <= 0)
             {
                 Shader.SetGlobalInt(VertexProfilerUtil._EnableVertexProfiler, 0);
-                RendererCuller.RevertAllReplaceShader(rendererComponentDatas);
                 return;
             }
         
@@ -158,11 +155,6 @@ namespace VertexProfilerTool
             RenderTextureDescriptor desc = new RenderTextureDescriptor(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, colorFormat, depthFormat, 0);
             desc.enableRandomWrite = randomWrite;
             VertexProfilerUtil.ReAllocRTIfNeeded(ref handle, desc, filterMode, TextureWrapMode.Clamp, false, name: handleName);
-        }
-
-        public virtual void LogoutProfilerData()
-        {
-            
         }
         
         public static Color GetProfilerContentColor(float content, out int level)

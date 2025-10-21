@@ -342,11 +342,8 @@ namespace VertexProfilerTool
                         if(mesh == null)
                             continue;
                         
-#if UNITY_2020_1_OR_NEWER
                         var meshBuffer = RendererCuller.GetGraphicBufferByMesh(mesh);
-#else
-                        var meshBuffer = RendererCuller.GetComputeBufferByMesh(mesh);
-#endif
+
                         if(meshBuffer == null) continue;
                         
                         int count = mesh.vertexCount;

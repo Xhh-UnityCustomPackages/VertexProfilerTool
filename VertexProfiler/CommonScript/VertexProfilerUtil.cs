@@ -481,8 +481,6 @@ namespace VertexProfilerTool
             }
         }
 
-        public static Dictionary<Color, Texture2D> pureColorTextureDict = new Dictionary<Color, Texture2D>();
-
         public static string GetGameObjectNameFromRoots(Transform trans)
         {
             if (trans == null)
@@ -546,28 +544,6 @@ namespace VertexProfilerTool
             }
             return nativeArray;
         }
-
-        public static string GetOverrideTagName(string renderTypeTag, string blendSrcTag, string blendDstTag,
-            int zwrite, CullMode cullMode)
-        {
-            string zwriteStr = "";
-            if (renderTypeTag.Equals("Transparent")) // 透明队列默认不开深度写入
-            {
-                zwriteStr = (zwrite <= 0) ? "" : "WithZWriteOn";
-            }
-            else
-            {
-                zwriteStr = (zwrite == 0) ? "WithZWriteOff" : "";
-            }
-
-            string cullModeStr = "";
-            if (cullMode != CullMode.Back)
-            {
-                cullModeStr = string.Format("WithCull{0}", cullMode.ToString());
-            }
-
-            return string.Concat(renderTypeTag, blendSrcTag, blendDstTag, zwriteStr, cullModeStr);
-        }
         
         public static bool IsRTNeedReAlloc(RTHandle handle, RenderTextureDescriptor descriptor, FilterMode filterMode, TextureWrapMode wrapMode, bool isShadowMap, int anisoLevel, float mipMapBias, string name)
         {
@@ -620,6 +596,7 @@ namespace VertexProfilerTool
                     desc.bindMS,
                     desc.useDynamicScale,
                     desc.memoryless,
+                    VRTextureUsage.None,
                     name
                     );
                 return true;

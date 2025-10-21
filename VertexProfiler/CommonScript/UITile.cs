@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace VertexProfilerTool
@@ -14,7 +13,10 @@ namespace VertexProfilerTool
 
         public void SetData(int tileWidth, int tileHeight, int tileNumX, int tileIndex)
         {
-            transform.name = "UITile" + tileIndex;
+	        if (rect == null) rect = GetComponent<RectTransform>();
+	        if (txtTileIndex == null) txtTileIndex = transform.Find("txtIndex").GetComponent<Text>();
+
+	        transform.name = "UITile" + tileIndex;
             
             rect.sizeDelta = new Vector2(tileWidth, tileHeight);
             int tilePosY = tileIndex / tileNumX;

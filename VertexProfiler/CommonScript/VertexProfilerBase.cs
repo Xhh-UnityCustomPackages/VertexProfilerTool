@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
@@ -11,7 +10,6 @@ namespace VertexProfilerTool
 {
     public class VertexProfilerBase : MonoBehaviour
     {
-        public bool isURP = false;
         public Camera MainCamera;
         public bool SyncSceneCameraToMainCamera = false;
         [Range(32, 128)]
