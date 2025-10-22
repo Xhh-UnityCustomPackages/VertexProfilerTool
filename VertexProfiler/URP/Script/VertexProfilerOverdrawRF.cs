@@ -30,23 +30,22 @@ namespace VertexProfilerTool
         RenderStateBlock m_renderStateBlock;
         ProfilingSampler m_ProfilingSampler;
         
-        public VertexProfilerModeOverdrawRenderPass() : base()
+        public VertexProfilerModeOverdrawRenderPass()
         {
-            EDisplayType = DisplayType.Overdraw;
-
             m_FilteringSettings = new FilteringSettings(RenderQueueRange.all, -1);
             m_renderStateBlock = new RenderStateBlock(RenderStateMask.Nothing);
             m_ProfilingSampler = new ProfilingSampler("PixelCalShader");
         }
 
-        public override void Setup()
+        public override void Setup(VertexProfilerRendererFeature.Settings settings)
         {
+	        base.Setup(settings);
             // 不能在构造函数初始化的部分在这创建
-            URPOverdrawCalculateTagId = new List<ShaderTagId>() {new ShaderTagId("SRPDefaultUnlit"), new ShaderTagId("UniversalForward"), new ShaderTagId("UniversalForwardOnly")};
+            URPOverdrawCalculateTagId = new List<ShaderTagId>() {new ("SRPDefaultUnlit"), new ("UniversalForward"), new ("UniversalForwardOnly")};
             if (vp != null)
             {
                 vp.ProfilerMode = this;
-                GenerateProfilerRTCS = vp.GenerateProfilerRTCS;
+                GenerateProfilerRTCS = m_Settings.m_FeatureData.shaders.generateProfilerRTCS;
                 OverdrawCalculateMat = new Material(Shader.Find("VertexProfiler/URPOverdrawCalculateShader"));
             };
         }
@@ -67,16 +66,9 @@ namespace VertexProfilerTool
             ReleaseAllComputeBuffer();
         }
 
-        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
-        {
-            base.OnCameraSetup(cmd, ref renderingData);
-            EDisplayType = DisplayType.Overdraw;
-        }
-
         public override bool CheckProfilerEnabled()
         {
-            return vp != null 
-                   && vp.EnableProfiler
+            return vp != null
                    && GenerateProfilerRTCS != null
                    && OverdrawCalculateMat != null;
         }
@@ -174,9 +166,9 @@ namespace VertexProfilerTool
             }
         }
 
-        public override void SetupConstantBufferData(CommandBuffer cmd, ref ScriptableRenderContext context)
+        public override void SetupConstantBufferData(CommandBuffer cmd, ref ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            base.SetupConstantBufferData(cmd, ref context);
+            base.SetupConstantBufferData(cmd, ref context, ref renderingData);
 
             ReAllocTileProfilerRT(GraphicsFormat.None, GraphicsFormat.D24_UNorm, FilterMode.Point, ref m_OutputOverdrawDepthRT, "m_OutputOverdrawDepthRT", false);
             ReAllocTileProfilerRT(GraphicsFormat.R32G32_SFloat, GraphicsFormat.None, FilterMode.Point, ref m_OutputOverdrawRT, "m_OutputOverdrawRT");

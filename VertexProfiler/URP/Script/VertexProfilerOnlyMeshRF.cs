@@ -25,25 +25,24 @@ namespace VertexProfilerTool
         RenderStateBlock m_renderStateBlock;
         ProfilingSampler m_ProfilingSampler;
         
-        public VertexProfilerModeOnlyMeshRenderPass() : base()
+        public VertexProfilerModeOnlyMeshRenderPass()
         {
-            EDisplayType = DisplayType.OnlyMesh;
-
             m_FilteringSettings = new FilteringSettings(RenderQueueRange.all, -1);
             m_renderStateBlock = new RenderStateBlock(RenderStateMask.Nothing);
             m_ProfilingSampler = new ProfilingSampler("PixelCalShader");
         }
 
-        public override void Setup()
+        public override void Setup(VertexProfilerRendererFeature.Settings settings)
         {
+	        base.Setup(settings);
             // 不能在构造函数初始化的部分在这创建
-            URPMeshPixelCalShaderTagId = new List<ShaderTagId>() {new ShaderTagId("SRPDefaultUnlit"), new ShaderTagId("UniversalForward"), new ShaderTagId("UniversalForwardOnly")};
+            URPMeshPixelCalShaderTagId = new List<ShaderTagId>() {new ("SRPDefaultUnlit"), new ("UniversalForward"), new ("UniversalForwardOnly")};
             if (vp != null)
             {
                 vp.ProfilerMode = this;
                 EProfilerType = vp.EProfilerType;
                 CheckColorRangeData(true);
-                MeshPixelCalMat = vp.MeshPixelCalMat;
+                MeshPixelCalMat = m_Settings.m_FeatureData.materials.MeshPixelCalMat;
             };
         }
 
@@ -60,16 +59,9 @@ namespace VertexProfilerTool
             ReleaseAllComputeBuffer();
         }
 
-        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
-        {
-            base.OnCameraSetup(cmd, ref renderingData);
-            EDisplayType = DisplayType.OnlyMesh;
-        }
-
         public override bool CheckProfilerEnabled()
         {
-            return vp != null 
-                   && vp.EnableProfiler
+            return vp != null
                    && MeshPixelCalMat != null;
         }
 
@@ -169,16 +161,17 @@ namespace VertexProfilerTool
             }
         }
 
-        public override void SetupConstantBufferData(CommandBuffer cmd, ref ScriptableRenderContext context)
+        public override void SetupConstantBufferData(CommandBuffer cmd, ref ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            base.SetupConstantBufferData(cmd, ref context);
+            base.SetupConstantBufferData(cmd, ref context, ref renderingData);
 
+            var camera = renderingData.cameraData.camera;
             // 外部处理
-            vp.TileNumX = Mathf.CeilToInt((float)vp.MainCamera.pixelWidth / (float)vp.TileWidth);
-            vp.TileNumY = Mathf.CeilToInt((float)vp.MainCamera.pixelHeight / (float)vp.TileHeight);
+            vp.TileNumX = Mathf.CeilToInt(camera.pixelWidth / (float)vp.TileWidth);
+            vp.TileNumY = Mathf.CeilToInt(camera.pixelHeight / (float)vp.TileHeight);
             
             // 在这里使用JobSystem调度视锥剔除计算
-            var frustumPlanes = GeometryUtility.CalculateFrustumPlanes(vp.MainCamera);
+            var frustumPlanes = GeometryUtility.CalculateFrustumPlanes(camera);
             NativeArray<RendererBoundsData> m_RendererBoundsNA = VertexProfilerUtil.ConvertToNativeArray(m_RendererBoundsData, Allocator.TempJob);
             NativeArray<uint> VisibleFlagNA = new NativeArray<uint>(m_RendererNum, Allocator.TempJob);
             NativeArray<Plane> frustumPlanesNA = VertexProfilerUtil.ConvertToNativeArray(frustumPlanes, Allocator.TempJob);
@@ -263,10 +256,10 @@ namespace VertexProfilerTool
         uint[] pixelCountData = null;
         private RTHandle m_ScreenshotRT;
 
-        public override void Setup()
+        public override void Setup(VertexProfilerRendererFeature.Settings settings)
         {
             if (vp == null) return;
-
+			base.Setup(settings);
             vp.LogMode = this;
         }
         
@@ -298,7 +291,7 @@ namespace VertexProfilerTool
             desc.enableRandomWrite = true;
             VertexProfilerUtil.ReAllocRTIfNeeded(ref m_ScreenshotRT, desc, FilterMode.Point, TextureWrapMode.Clamp, false, name: "ScreenShot");
            
-            cmd.Blit(colorAttachment, m_ScreenshotRT, vp.GammaCorrectionEffectMat);
+            cmd.Blit(colorAttachment, m_ScreenshotRT, m_Settings.m_FeatureData.materials.GammaCorrectionEffectMat);
             
             // 拉取数据，异步回读
             cmd.RequestAsyncReadback(VertexProfilerModeBaseRenderPass.m_PixelCounterBuffer,
@@ -372,7 +365,7 @@ namespace VertexProfilerTool
                 //应用
                 screenShotWithPostEffect.Apply();
                 // 写入Excel
-                VertexProfilerEvent.CallLogoutToExcel(vp.EDisplayType, logoutDataList, m_ScreenshotRT.rt, screenShotWithPostEffect);
+                VertexProfilerEvent.CallLogoutToExcel(DisplayType.OnlyMesh, logoutDataList, m_ScreenshotRT.rt, screenShotWithPostEffect);
                 // 释放资源
                 Object.DestroyImmediate(screenShotWithPostEffect);
             }

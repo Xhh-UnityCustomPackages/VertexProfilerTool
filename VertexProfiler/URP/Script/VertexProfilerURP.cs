@@ -13,15 +13,6 @@ namespace VertexProfilerTool
     [ExecuteInEditMode]
     public class VertexProfilerURP : VertexProfilerBase
     {
-        /// <summary>
-        /// 当前项目使用的管线资产对象
-        /// </summary>
-        public UniversalRenderPipelineAsset defaultPipelineAsset;
-        /// <summary>
-        /// VertexProfiler的渲染管线资产对象
-        /// </summary>
-        public UniversalRenderPipelineAsset vpPipelineAsset;
-
         public VertexProfilerURP()
         {
             VertexProfilerModeBaseRenderPass.vp = this;
@@ -30,7 +21,7 @@ namespace VertexProfilerTool
         
         public VertexProfilerModeBaseRenderPass ProfilerMode;
         public VertexProfilerLogBaseRenderPass LogMode;
-        public Shader MeshPixelCalShader;
+    
         
         [NonReorderable]
         public List<int> DensityList = new List<int>();
@@ -39,15 +30,6 @@ namespace VertexProfilerTool
         
         private void Awake()
         {
-            VertexProfilerReplaceShader = Shader.Find("VertexProfiler/URPVertexProfilerReplaceShader");
-            MeshPixelCalShader = Shader.Find("VertexProfiler/URPMeshPixelCalShader");
-            MeshPixelCalMat = new Material(MeshPixelCalShader);
-            ApplyProfilerDataByPostEffectShader = Shader.Find("VertexProfiler/URPApplyProfilerDataByPostEffect");
-            ApplyProfilerDataByPostEffectMat = new Material(ApplyProfilerDataByPostEffectShader);
-            GammaCorrectionShader = Shader.Find("VertexProfiler/URPGammaCorrection");
-            GammaCorrectionEffectMat = new Material(GammaCorrectionShader);
-            
-            InitKeyword();
             InitUITile();
         }
 
@@ -62,7 +44,7 @@ namespace VertexProfilerTool
             base.Update();
             if (VertexProfilerUtil.ForceReloadProfilerModeAfterScriptCompile)
             {
-                CheckProfilerMode(true);
+                CheckProfilerMode();
                 VertexProfilerUtil.ForceReloadProfilerModeAfterScriptCompile = false;
             }
         }
@@ -71,25 +53,12 @@ namespace VertexProfilerTool
 
         public void StartProfiler()
         {
-            EnableProfiler = true;
-            defaultPipelineAsset = defaultPipelineAsset == null
-                ? (UniversalRenderPipelineAsset)GraphicsSettings.renderPipelineAsset
-                : defaultPipelineAsset;
-            if (vpPipelineAsset != null)
-            {
-                GraphicsSettings.renderPipelineAsset = vpPipelineAsset;
-            }
             CheckShowUIGrid();
         }
 
         public void StopProfiler()
         {
-            EnableProfiler = false;
             CheckShowUIGrid();
-            if (defaultPipelineAsset != null)
-            {
-                GraphicsSettings.renderPipelineAsset = defaultPipelineAsset;
-            }
         }
         
         public void ChangeProfilerType(int index)
@@ -98,16 +67,8 @@ namespace VertexProfilerTool
             ProfilerMode?.ChangeProfilerType(EProfilerType);
         }
 
-        public void CheckProfilerMode(bool forceInit = false)
+        public void CheckProfilerMode()
         {
-            if (MainCamera == null) return;
-            
-            if (ProfilerMode == null || ProfilerMode.EDisplayType != EDisplayType || forceInit)
-            {
-                // TODO 根据模式不同选用不同的RendererFeature Pass 
-                // UniversalAdditionalCameraData cameraData = MainCamera.GetUniversalAdditionalCameraData();
-                // cameraData.SetRenderer((int)EDisplayType);
-            }
             CheckShowUIGrid();
         }
         

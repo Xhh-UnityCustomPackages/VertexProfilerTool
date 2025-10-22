@@ -30,34 +30,24 @@ namespace VertexProfilerTool
             }
         }
 
-        public Gradient HeatMapGradient;
+        // public Gradient HeatMapGradient;
         [Range(0.0f, 0.99f)]
         public float HeatMapRampMin = 0.0f;
         [Range(0.01f, 1.0f)]
         public float HeatMapRampMax = 1.0f;
         
-        public ComputeShader CalculateVertexByTilesCS;
-        public ComputeShader GenerateProfilerRTCS;
-        public Texture2D HeatMapTex;
-        public bool EnableProfiler = true;
+ 
+        // public bool EnableProfiler = true;
         public ProfilerType EProfilerType = ProfilerType.Detail;
-        public UpdateType EUpdateType = UpdateType.EveryFrame;
+        // public UpdateType EUpdateType = UpdateType.EveryFrame;
         public DisplayType EDisplayType = DisplayType.OnlyTile;
         public bool NeedRecollectRenderers = true;
-
-        internal Shader VertexProfilerReplaceShader;
-        internal Shader ApplyProfilerDataByPostEffectShader;
-        internal Shader GammaCorrectionShader;
-        public Material ApplyProfilerDataByPostEffectMat;
-        public Material MeshPixelCalMat;
-        public Material GammaCorrectionEffectMat;
+        
         
         public int TileNumX = 1;
         public int TileNumY = 1;
         
-        public GlobalKeyword _USE_ONLYTILE_PROFILER;
-        public GlobalKeyword _USE_ONLYMESH_PROFILER;
-        public GlobalKeyword _USE_TILEBASEDMESH_PROFILER; 
+       
         
         // log 
         public GameObject GoUITile;
@@ -81,13 +71,7 @@ namespace VertexProfilerTool
         {
             EditorApplication.update -= EditorSyncCamera;
         }
-
-        internal void InitKeyword()
-        {
-            _USE_ONLYTILE_PROFILER = GlobalKeyword.Create("_USE_ONLYTILE_PROFILER");
-            _USE_ONLYMESH_PROFILER = GlobalKeyword.Create("_USE_ONLYMESH_PROFILER");
-            _USE_TILEBASEDMESH_PROFILER = GlobalKeyword.Create("_USE_TILEBASEDMESH_PROFILER");
-        }
+        
         /// <summary>
         /// 创建Canvas和EventSystem
         /// </summary>
@@ -253,17 +237,6 @@ namespace VertexProfilerTool
         #region Recycle
         internal void OnDestroy()
         {
-            if (ApplyProfilerDataByPostEffectMat != null)
-            {
-                DestroyImmediate(ApplyProfilerDataByPostEffectMat);
-                ApplyProfilerDataByPostEffectMat = null;
-            }
-            if (GammaCorrectionEffectMat != null)
-            {
-                DestroyImmediate(GammaCorrectionEffectMat);
-                GammaCorrectionEffectMat = null;
-            }
-
             for (int i = GoUITileList.Count - 1; i >= 0; i--)
             {
                 DestroyImmediate(GoUITileList[i]);

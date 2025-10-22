@@ -8,11 +8,10 @@ using UnityEngine.Rendering.Universal;
 namespace VertexProfilerTool
 {
     [System.Serializable]
-    public class VertexProfilerModeBaseRenderPass : ScriptableRenderPass
+    public abstract class VertexProfilerModeBaseRenderPass : ScriptableRenderPass
     {
         public static VertexProfilerURP vp;
         public ProfilerType EProfilerType = ProfilerType.Detail;
-        public DisplayType EDisplayType = DisplayType.TileBasedMesh;
         public CullMode ECullMode = CullMode.Back;
         public List<int> DensityList = new List<int>();
         public bool NeedSyncColorRangeSetting = true;
@@ -30,13 +29,15 @@ namespace VertexProfilerTool
         internal List<RendererBoundsData> m_RendererBoundsData = new List<RendererBoundsData>();
         internal List<Matrix4x4> m_RendererLocalToWorldMatrix = new List<Matrix4x4>();
     
+        protected VertexProfilerRendererFeature.Settings m_Settings;
         public VertexProfilerModeBaseRenderPass()
         {
-            
+	        
         }
 
-        public virtual void Setup()
+        public virtual void Setup(VertexProfilerRendererFeature.Settings settings)
         {
+	        m_Settings = settings;
         }
 
         public virtual void OnDisable()
@@ -69,7 +70,7 @@ namespace VertexProfilerTool
             CheckColorRangeData();
             CommandBuffer cmd = CommandBufferPool.Get();
             // 设置静态Buffer到GPU
-            SetupConstantBufferData(cmd, ref context);
+            SetupConstantBufferData(cmd, ref context, ref renderingData);
             // 调度预渲染统计信息
             Dispatch(cmd, ref context, ref renderingData);
             CommandBufferPool.Release(cmd);
@@ -99,10 +100,10 @@ namespace VertexProfilerTool
             
         }
 
-        public virtual void SetupConstantBufferData(CommandBuffer cmd, ref ScriptableRenderContext context)
+        public virtual void SetupConstantBufferData(CommandBuffer cmd, ref ScriptableRenderContext context, ref RenderingData renderingData)
         {
             cmd.SetGlobalInt(VertexProfilerUtil._EnableVertexProfiler, 1);
-            cmd.SetGlobalInt(VertexProfilerUtil._DisplayType, (int)vp.EDisplayType);
+            cmd.SetGlobalInt(VertexProfilerUtil._DisplayType, (int)m_Settings.displayType);
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
             
@@ -191,6 +192,14 @@ namespace VertexProfilerTool
     {
         private VertexProfilerURP vp;
 
+        private VertexProfilerRendererFeature.Settings m_Settings;
+        
+
+        public void Setup(VertexProfilerRendererFeature.Settings settings)
+        {
+	        m_Settings = settings;
+        }
+
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
         }
@@ -207,7 +216,7 @@ namespace VertexProfilerTool
             vp = VertexProfilerModeBaseRenderPass.vp;
             if (vp == null) return;
             
-            Blit(cmd, ref renderingData, vp.ApplyProfilerDataByPostEffectMat);
+            Blit(cmd, ref renderingData, m_Settings.m_FeatureData.materials.ApplyProfilerDataByPostEffectMat);
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
@@ -224,8 +233,10 @@ namespace VertexProfilerTool
         public static VertexProfilerURP vp;
         public List<ProfilerDataContents> logoutDataList = new List<ProfilerDataContents>();
 
-        public virtual void Setup()
+        protected VertexProfilerRendererFeature.Settings m_Settings;
+        public virtual void Setup(VertexProfilerRendererFeature.Settings settings)
         {
+	        m_Settings = settings;
         }
 
         public virtual void OnDisable()
@@ -240,7 +251,7 @@ namespace VertexProfilerTool
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            if (vp == null || !vp.EnableProfiler) return;
+            if (vp == null) return;
             
             CommandBuffer cmd = CommandBufferPool.Get();
             // 处理log操作

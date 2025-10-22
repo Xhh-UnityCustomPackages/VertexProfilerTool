@@ -1,12 +1,34 @@
 ﻿using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using System;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace VertexProfilerTool
 {
 	[DisallowMultipleRendererFeature]
 	public class VertexProfilerRendererFeature : ScriptableRendererFeature
 	{
-		public DisplayType displayType = DisplayType.None;
+		[Serializable]
+		public class Settings
+		{
+			[SerializeField] public VertexProfilerRendererFeatureData m_FeatureData;
+			public DisplayType displayType = DisplayType.None;
+		}
+		
+		[SerializeField] 
+		Settings m_Settings = new();
+
+		public DisplayType displayType
+		{
+			get { return m_Settings.displayType; }
+			set { m_Settings.displayType = value; }
+		}
+
+		public bool EnableProfiler;
+
 		private DisplayType m_LastDisplayType = DisplayType.None;
 		VertexProfilerModeBaseRenderPass m_ScriptablePass;
 		VertexProfilerLogBaseRenderPass m_LogPass;
@@ -45,26 +67,36 @@ namespace VertexProfilerTool
 			}
 
 			if (m_PostEffectPass == null) m_PostEffectPass = new VertexProfilerPostEffectRenderPass();
-
-			m_ScriptablePass.renderPassEvent = RenderPassEvent.AfterRenderingGbuffer;
-			if (m_LogPass != null) m_LogPass.renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
 			m_PostEffectPass.renderPassEvent = RenderPassEvent.AfterRenderingPostProcessing;
+
+			if (m_ScriptablePass != null) m_ScriptablePass.renderPassEvent = RenderPassEvent.AfterRenderingGbuffer;
+			if (m_LogPass != null) m_LogPass.renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
 		}
 
 		public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
 		{
+			if (m_Settings.m_FeatureData == null)
+			{
+#if UNITY_EDITOR
+				m_Settings.m_FeatureData = AssetDatabase.LoadAssetAtPath<VertexProfilerRendererFeatureData>("Assets/VertexProfiler/URP/Script/Data/VertexProfilerRendererFeatureData.asset");
+#endif
+				return;
+			}
+
+			if (!EnableProfiler) return;
 			if (renderingData.cameraData.cameraType != CameraType.Game) return;
 
-			if (m_LastDisplayType != displayType)
+			if (m_LastDisplayType != m_Settings.displayType)
 			{
-				m_LastDisplayType = displayType;
+				m_LastDisplayType = m_Settings.displayType;
 				CreatePass();
 			}
 
-			m_ScriptablePass.Setup();
-			m_LogPass?.Setup();
+			m_ScriptablePass?.Setup(m_Settings);
+			m_LogPass?.Setup(m_Settings);
+			m_PostEffectPass.Setup(m_Settings);
 			
-			switch (displayType)
+			switch (m_Settings.displayType)
 			{
 				case DisplayType.MeshHeatMap:
 					renderer.EnqueuePass(m_ScriptablePass);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
@@ -34,7 +35,6 @@ namespace VertexProfilerTool
         private ComputeShader CalculateVertexByTilesCS;
         private ComputeShader GenerateProfilerRTCS;
         private GameObject GoUITile;
-        private Texture2D HeatmapDefaultTexture;
         private List<string> ResErrorLogContent = new List<string>();
 
         private SerializedObject serializedObject;
@@ -42,15 +42,15 @@ namespace VertexProfilerTool
         private SerializedProperty SyncSceneCameraToMainCamera;
         private SerializedProperty TileWidth;
         private SerializedProperty TileHeight;
-        private SerializedProperty EnableProfiler;
+        private bool EnableProfiler = true;
         private SerializedProperty EProfilerType;
-        private SerializedProperty EUpdateType;
-        private SerializedProperty EDisplayType;
+        private UpdateType EUpdateType = UpdateType.EveryFrame;
+        private DisplayType EDisplayType;
         private SerializedProperty ProfilerModeDensityList;
-        private SerializedProperty HeatMapTex;
+        // private SerializedProperty HeatMapTex;
         private SerializedProperty HeatMapRange;
         private SerializedProperty HeatMapStep;
-        private SerializedProperty HeatMapGradient;
+        // private SerializedProperty HeatMapGradient;
         private SerializedProperty ECullMode;
         private SerializedProperty HeatMapRampMin;
         private SerializedProperty HeatMapRampMax;
@@ -121,7 +121,7 @@ namespace VertexProfilerTool
         private MyMultiColumnHeader m_multiColumnHeader;
         private VertexProfilerMultiColumnTreeView m_TreeView;
 
-        [MenuItem("Window/Analysis/VertexProfilerWindow")]
+        [MenuItem("Window/Analysis/Vertex Profiler (顶点密度)")]
         public static void ShowWindow()
         {
             var window = GetWindow<VertexProfilerWindow>();
@@ -173,12 +173,6 @@ namespace VertexProfilerTool
             LoadComputeShader("CalculateVertexByTiles", ref CalculateVertexByTilesCS);
             LoadComputeShader("GenerateProfileRT", ref GenerateProfilerRTCS);
             LoadPrefab(UITIleGoResPath, "UITile", ref GoUITile);
-            
-            LoadTexture(HeatMapResPath, TempHeatMapName, ref HeatmapDefaultTexture);
-            if (HeatmapDefaultTexture == null)
-            {
-                LoadTexture(HeatMapResPath, "Heatmap", ref HeatmapDefaultTexture);
-            }
         }
         Rect searchFieldViewRect
         {
@@ -228,26 +222,7 @@ namespace VertexProfilerTool
                 Debug.LogError(errorContent);
             }
         }
-
-        private void DrawGradientGUI()
-        {
-            EditorGUILayout.PropertyField(HeatMapGradient, new GUIContent("定制热力图渐变"));
-            if (GUILayout.Button("应用颜色渐变到热力图Ramp"))
-            {
-                // 生成纹理，替换热力图ramp
-                var texture = VertexProfilerEditorUtil.ConvertGradientToTexture(vertexProfilerURP.HeatMapGradient);
-                texture.name = TempHeatMapName;
-                serializedObject.ApplyModifiedProperties();
-                vertexProfilerURP.HeatMapTex = texture;
-                serializedObject.Update();
-                
-                // 存储这份纹理到本地
-                string storePath = string.Format("{0}{1}{2}.png", Application.dataPath
-                    , HeatMapResPath.Replace("Assets", ""), TempHeatMapName);
-                System.IO.File.WriteAllBytes(storePath, texture.EncodeToPNG());
-                AssetDatabase.Refresh();
-            }
-        }
+        
 
         private bool CheckResourceReady()
         {
@@ -324,10 +299,9 @@ namespace VertexProfilerTool
                 fullyInited = true;
                 
                 vertexProfilerURP.MainCamera = Camera.main;
-                vertexProfilerURP.CalculateVertexByTilesCS = CalculateVertexByTilesCS;
-                vertexProfilerURP.GenerateProfilerRTCS = GenerateProfilerRTCS;
+                // vertexProfilerURP.CalculateVertexByTilesCS = CalculateVertexByTilesCS;
+                // vertexProfilerURP.GenerateProfilerRTCS = GenerateProfilerRTCS;
                 vertexProfilerURP.GoUITile = GoUITile;
-                vertexProfilerURP.HeatMapTex = HeatmapDefaultTexture;
                 logTickTimer = 0.99f; // 保证第一次刷新不会隔太久
 
                 InitSerializedObject();
@@ -347,14 +321,14 @@ namespace VertexProfilerTool
                 SyncSceneCameraToMainCamera = serializedObject.FindProperty("SyncSceneCameraToMainCamera");
                 TileWidth = serializedObject.FindProperty("TileWidth");
                 TileHeight = serializedObject.FindProperty("TileHeight");
-                EnableProfiler = serializedObject.FindProperty("EnableProfiler");
+                // EnableProfiler = serializedObject.FindProperty("EnableProfiler");
                 EProfilerType = serializedObject.FindProperty("EProfilerType");
-                EUpdateType = serializedObject.FindProperty("EUpdateType");
-                EDisplayType = serializedObject.FindProperty("EDisplayType");
-                HeatMapTex = serializedObject.FindProperty("HeatMapTex");
+                // EUpdateType = serializedObject.FindProperty("EUpdateType");
+                // EDisplayType = serializedObject.FindProperty("EDisplayType");
+                // HeatMapTex = serializedObject.FindProperty("HeatMapTex");
                 HeatMapRange = serializedObject.FindProperty("HeatMapRange");
                 HeatMapStep = serializedObject.FindProperty("HeatMapStep");
-                HeatMapGradient = serializedObject.FindProperty("HeatMapGradient");
+                // HeatMapGradient = serializedObject.FindProperty("HeatMapGradient");
                 ECullMode = serializedObject.FindProperty("ECullMode");
                 HeatMapRampMin = serializedObject.FindProperty("HeatMapRampMin");
                 HeatMapRampMax = serializedObject.FindProperty("HeatMapRampMax");
@@ -431,11 +405,11 @@ namespace VertexProfilerTool
             }
             
             EditorGUI.BeginChangeCheck();
-            EditorGUILayout.PropertyField(EnableProfiler, c_EnableProfiler);
+            EnableProfiler = EditorGUILayout.Toggle(c_EnableProfiler, EnableProfiler);
             
             if (EditorGUI.EndChangeCheck())
             {
-                if (EnableProfiler.boolValue)
+                if (EnableProfiler)
                 {
                     StartProfiler();
                 }
@@ -448,9 +422,9 @@ namespace VertexProfilerTool
             
             EditorGUILayout.PropertyField(SyncSceneCameraToMainCamera, c_SyncSceneCameraToMainCamera);
             EditorGUILayout.Space();
-            
+
             EditorGUI.BeginChangeCheck();
-            EditorGUILayout.PropertyField(EDisplayType, c_EDisplayType);
+            EDisplayType = (DisplayType)EditorGUILayout.EnumPopup(c_EDisplayType, EDisplayType);
             if (EditorGUI.EndChangeCheck())
             {
                 NeedSyncColorRangeSetting.boolValue = true;
@@ -460,8 +434,8 @@ namespace VertexProfilerTool
                 needUpdateColumnData = true;
             }
 
-            if (EDisplayType.enumValueIndex == (int)DisplayType.OnlyTile 
-                || EDisplayType.enumValueIndex == (int)DisplayType.TileBasedMesh)
+            if (EDisplayType == DisplayType.OnlyTile 
+                || EDisplayType == DisplayType.TileBasedMesh)
             {
                 EditorGUI.BeginChangeCheck();
                 EditorGUILayout.BeginHorizontal();
@@ -499,29 +473,29 @@ namespace VertexProfilerTool
             
             boxStyle = new GUIStyle(GUI.skin.box);
             boxStyle.normal.background = EditorGUIUtility.whiteTexture;
-            bool showDensityContent = EDisplayType.enumValueIndex == (int)DisplayType.OnlyTile
-                                      || EDisplayType.enumValueIndex == (int)DisplayType.OnlyMesh
-                                      || EDisplayType.enumValueIndex == (int)DisplayType.TileBasedMesh
-                                      || EDisplayType.enumValueIndex == (int)DisplayType.Overdraw;
+            bool showDensityContent = EDisplayType == DisplayType.OnlyTile
+                                      || EDisplayType == DisplayType.OnlyMesh
+                                      || EDisplayType == DisplayType.TileBasedMesh
+                                      || EDisplayType == DisplayType.Overdraw;
             if (showDensityContent)
             {
                 EditorGUILayout.BeginVertical(boxStyle);
-                if (EDisplayType.enumValueIndex == (int)DisplayType.OnlyTile) // 使用棋盘格密度设置
+                if (EDisplayType == DisplayType.OnlyTile) // 使用棋盘格密度设置
                 {
                     EditorGUILayout.LabelField(c_OnlyTileContent1, titleStyle);
                     EditorGUILayout.LabelField(c_OnlyTileContent2, contentStyle);
                 }
-                else if (EDisplayType.enumValueIndex == (int)DisplayType.OnlyMesh) // 使用顶点像素密度设置
+                else if (EDisplayType == DisplayType.OnlyMesh) // 使用顶点像素密度设置
                 {
                     EditorGUILayout.LabelField(c_OnlyMeshContent1, titleStyle);
                     EditorGUILayout.LabelField(c_OnlyMeshContent2, contentStyle);
                 }
-                else if (EDisplayType.enumValueIndex == (int)DisplayType.TileBasedMesh) // 使用逐棋盘格的Mesh密度设置
+                else if (EDisplayType == DisplayType.TileBasedMesh) // 使用逐棋盘格的Mesh密度设置
                 {
                     EditorGUILayout.LabelField(c_TileBasedMeshContent1, titleStyle);
                     EditorGUILayout.LabelField(c_TileBasedMeshContent2, contentStyle);
                 }
-                else if (EDisplayType.enumValueIndex == (int)DisplayType.Overdraw) // 使用逐棋盘格的Mesh密度设置
+                else if (EDisplayType == DisplayType.Overdraw) // 使用逐棋盘格的Mesh密度设置
                 {
                     EditorGUILayout.LabelField(c_OverdrawContent1, titleStyle);
                     EditorGUILayout.LabelField(c_OverdrawContent2, contentStyle);
@@ -531,21 +505,20 @@ namespace VertexProfilerTool
             }
             
             // 绘制阈值控件
-            if (EDisplayType.enumValueIndex == (int)DisplayType.OnlyTile 
-                || EDisplayType.enumValueIndex == (int)DisplayType.OnlyMesh
-                || EDisplayType.enumValueIndex == (int)DisplayType.TileBasedMesh
-                || EDisplayType.enumValueIndex == (int)DisplayType.Overdraw)
+            if (EDisplayType == DisplayType.OnlyTile 
+                || EDisplayType == DisplayType.OnlyMesh
+                || EDisplayType == DisplayType.TileBasedMesh
+                || EDisplayType == DisplayType.Overdraw)
             {
                 DrawDensitySetting(ProfilerModeDensityList);
             }
-            if (EDisplayType.enumValueIndex == (int)DisplayType.MeshHeatMap)
+            if (EDisplayType == DisplayType.MeshHeatMap)
             {
                 EditorGUI.BeginChangeCheck();
                 EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.ObjectField(HeatMapTex, typeof(Texture2D), new GUIContent("热力图Ramp纹理"));
+                // EditorGUILayout.ObjectField(HeatMapTex, typeof(Texture2D), new GUIContent("热力图Ramp纹理"));
                 EditorGUILayout.PropertyField(ECullMode, new GUIContent("热力图顶点剔除"), GUILayout.Width(300));
                 EditorGUILayout.EndHorizontal();
-                DrawGradientGUI();
                 float minValue = HeatMapRampMin.floatValue;
                 float maxValue = HeatMapRampMax.floatValue;
                 EditorGUILayout.MinMaxSlider(new GUIContent("查看的热力图阈值范围"), ref minValue, ref maxValue, 0.0f, 1.0f);
@@ -564,12 +537,12 @@ namespace VertexProfilerTool
             EditorGUILayout.Space();
             
             EditorGUI.BeginChangeCheck();
-            EditorGUILayout.PropertyField(EUpdateType, c_EUpdateType);
+            EUpdateType = (UpdateType)EditorGUILayout.EnumPopup(c_EUpdateType, EUpdateType);
             if (EditorGUI.EndChangeCheck())
             {
                 NeedRecollectRenderers.boolValue = true;
             }
-            if (EUpdateType.enumValueIndex == (int)UpdateType.Once)
+            if (EUpdateType == UpdateType.Once)
             {
                 if (GUILayout.Button("重新收集场景对象"))
                 {
@@ -577,9 +550,9 @@ namespace VertexProfilerTool
                 }
             }
 
-            bool canLog = EDisplayType.enumValueIndex == (int)DisplayType.OnlyTile
-                          || EDisplayType.enumValueIndex == (int)DisplayType.OnlyMesh
-                          || EDisplayType.enumValueIndex == (int)DisplayType.TileBasedMesh;
+            bool canLog = EDisplayType == DisplayType.OnlyTile
+                          || EDisplayType == DisplayType.OnlyMesh
+                          || EDisplayType == DisplayType.TileBasedMesh;
             if (canLog)
             {
                 if (GUILayout.Button("输出当前画面ProfilerLog"))
@@ -641,8 +614,8 @@ namespace VertexProfilerTool
                     EditorGUI.BeginDisabledGroup(true);
                     EditorGUILayout.ColorField(new GUIContent(), colorGamma, false, false, false, GUILayout.Width(60));
                     bool isLastElement = i == targetList.arraySize - 1;
-                    var settingUnit = profilerSettingUnitDict.ContainsKey(EDisplayType.enumValueIndex)
-                        ? profilerSettingUnitDict[EDisplayType.enumValueIndex]
+                    var settingUnit = profilerSettingUnitDict.ContainsKey((int)EDisplayType)
+                        ? profilerSettingUnitDict[(int)EDisplayType]
                         : new GUIContent("这里单位漏了"); 
                     if (profilerType == ProfilerType.Simple)
                     {
@@ -785,9 +758,9 @@ namespace VertexProfilerTool
                 headerTextAlignment = TextAlignment.Center,
                 canSort = false
             });
-            switch (EDisplayType.enumValueIndex)
+            switch (EDisplayType)
             {
-                case (int)DisplayType.OnlyTile:
+                case DisplayType.OnlyTile:
                     columnsList.Add(new MultiColumnHeaderState.Column()
                     {
                         headerContent = new GUIContent("Tile Offset"),
@@ -817,7 +790,7 @@ namespace VertexProfilerTool
                     });
                     break;
                 
-                case (int)DisplayType.OnlyMesh:
+                case DisplayType.OnlyMesh:
                     columnsList.Add(new MultiColumnHeaderState.Column()
                     {
                         headerContent = new GUIContent("资源名称"),
@@ -867,7 +840,7 @@ namespace VertexProfilerTool
                     });
                     break;
                 
-                case (int)DisplayType.TileBasedMesh:
+                case DisplayType.TileBasedMesh:
                     columnsList.Add(new MultiColumnHeaderState.Column()
                     {
                         headerContent = new GUIContent("Tile Offset"),
@@ -996,15 +969,15 @@ namespace VertexProfilerTool
                     classifyProfilerList[i].Clear();
                 }
                 // 往阈值分类节点中插入数据
-                switch (EDisplayType.enumValueIndex)
+                switch (EDisplayType)
                 {
-                    case (int)DisplayType.OnlyTile:
+                    case DisplayType.OnlyTile:
                         AddOnlyTileProfilerElements(ref Id);
                         break;
-                    case (int)DisplayType.OnlyMesh:
+                    case DisplayType.OnlyMesh:
                         AddOnlyMeshProfilerElements(ref Id);
                         break;
-                    case (int)DisplayType.TileBasedMesh:
+                    case DisplayType.TileBasedMesh:
                         AddTileBasedMeshProfilerElements(ref Id);
                         break;
                 }
@@ -1020,11 +993,11 @@ namespace VertexProfilerTool
 
                 if (m_TreeView == null)
                 {
-                    m_TreeView = new VertexProfilerMultiColumnTreeView(EDisplayType.enumValueIndex, m_TreeViewState, m_multiColumnHeader, m_TreeModel);
+                    m_TreeView = new VertexProfilerMultiColumnTreeView((int)EDisplayType, m_TreeViewState, m_multiColumnHeader, m_TreeModel);
                 }
                 else
                 {
-                    m_TreeView.DisplayTypeIndex = EDisplayType.enumValueIndex;
+                    m_TreeView.DisplayTypeIndex = (int)EDisplayType;
                     m_TreeView.Reload();
                 }
                 
@@ -1146,17 +1119,38 @@ namespace VertexProfilerTool
 
         private void StartProfiler()
         {
+	        UniversalRenderPipelineAsset urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+	        UniversalRendererData rendererData = VertexProfilerUtil.GetRendererDataByIndex(urpAsset, 0);
+	        VertexProfilerUtil.ModifyRendererFeature<VertexProfilerRendererFeature>(rendererData, feature =>
+	        {
+		        feature.EnableProfiler = true;
+	        });
 	        vertexProfilerURP.StartProfiler();
         }
         private void StopProfiler()
         {
+	        UniversalRenderPipelineAsset urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+	        UniversalRendererData rendererData = VertexProfilerUtil.GetRendererDataByIndex(urpAsset, 0);
+	        VertexProfilerUtil.ModifyRendererFeature<VertexProfilerRendererFeature>(rendererData, feature =>
+	        {
+		        feature.EnableProfiler = false;
+	        });
 	        vertexProfilerURP.StopProfiler();
         }
 
         private void CheckProfilerMode()
         {
+	        vertexProfilerURP.EDisplayType = EDisplayType;
 	        vertexProfilerURP.CheckProfilerMode();
+	        UniversalRenderPipelineAsset urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+	        UniversalRendererData rendererData = VertexProfilerUtil.GetRendererDataByIndex(urpAsset, 0);
+	        VertexProfilerUtil.ModifyRendererFeature<VertexProfilerRendererFeature>(rendererData, feature =>
+	        {
+		        feature.displayType = EDisplayType;
+	        });
         }
+        
+        
 
         private void UseDefaultColorRangeSetting()
         {

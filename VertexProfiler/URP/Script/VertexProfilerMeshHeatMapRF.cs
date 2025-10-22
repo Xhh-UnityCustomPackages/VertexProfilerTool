@@ -36,26 +36,25 @@ namespace VertexProfilerTool
         FilteringSettings m_FilteringSettings;
         RenderStateBlock m_renderStateBlock;
         ProfilingSampler m_ProfilingSamplerOutputRenderer;
-        
-        public VertexProfilerModeMeshHeatMapRenderPass() : base()
-        {
-            EDisplayType = DisplayType.MeshHeatMap;
 
-            m_FilteringSettings = new FilteringSettings(RenderQueueRange.all, -1);
-            m_renderStateBlock = new RenderStateBlock(RenderStateMask.Nothing);
-            m_ProfilingSamplerOutputRenderer = new ProfilingSampler("Output Renderer Data");
+        public VertexProfilerModeMeshHeatMapRenderPass()
+        {
+	        m_FilteringSettings = new FilteringSettings(RenderQueueRange.all);
+	        m_renderStateBlock = new RenderStateBlock(RenderStateMask.Nothing);
+	        m_ProfilingSamplerOutputRenderer = new ProfilingSampler("Output Renderer Data");
         }
 
-        public override void Setup()
+        public override void Setup(VertexProfilerRendererFeature.Settings settings)
         {
+	        base.Setup(settings);
             // 不能在构造函数初始化的部分在这创建
-            URPOutputRendererTagId = new List<ShaderTagId>() {new ShaderTagId("SRPDefaultUnlit"), new ShaderTagId("UniversalForward"), new ShaderTagId("UniversalForwardOnly")};
+            URPOutputRendererTagId = new List<ShaderTagId>() {new ("SRPDefaultUnlit"), new ("UniversalForward"), new ("UniversalForwardOnly")};
             if (vp != null)
             {
                 vp.ProfilerMode = this;
                 
-                CalculateVertexByTilesCS = vp.CalculateVertexByTilesCS;
-                GenerateProfilerRTCS = vp.GenerateProfilerRTCS;
+                CalculateVertexByTilesCS = m_Settings.m_FeatureData.shaders.calculateVertexByTilesCS;
+                GenerateProfilerRTCS = m_Settings.m_FeatureData.shaders.generateProfilerRTCS;
                 OutputRendererIdMat = new Material(Shader.Find("VertexProfiler/URPOutputRendererIdShader"));
             };
         }
@@ -77,16 +76,9 @@ namespace VertexProfilerTool
             ReleaseAllComputeBuffer();
         }
 
-        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
-        {
-            base.OnCameraSetup(cmd, ref renderingData);
-            EDisplayType = DisplayType.MeshHeatMap;
-        }
-
         public override bool CheckProfilerEnabled()
         {
-            return vp != null 
-                   && vp.EnableProfiler
+            return vp != null
                    && CalculateVertexByTilesCS != null 
                    && GenerateProfilerRTCS != null 
                    && OutputRendererIdMat != null;
@@ -190,21 +182,22 @@ namespace VertexProfilerTool
             }
         }
 
-        public override void SetupConstantBufferData(CommandBuffer cmd, ref ScriptableRenderContext context)
+        public override void SetupConstantBufferData(CommandBuffer cmd, ref ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            base.SetupConstantBufferData(cmd, ref context);
-            
+            base.SetupConstantBufferData(cmd, ref context,ref renderingData);
+
+            var camera = renderingData.cameraData.camera;
             // 相机矩阵
-            Matrix4x4 m_v = vp.MainCamera.worldToCameraMatrix;
-            Matrix4x4 m_p = GL.GetGPUProjectionMatrix(vp.MainCamera.projectionMatrix, SystemInfo.graphicsUVStartsAtTop);
+            Matrix4x4 m_v = camera.worldToCameraMatrix;
+            Matrix4x4 m_p = GL.GetGPUProjectionMatrix(camera.projectionMatrix, SystemInfo.graphicsUVStartsAtTop);
             Matrix4x4 m_vp = m_p * m_v;
             
             // 外部处理
-            vp.TileNumX = Mathf.CeilToInt((float)vp.MainCamera.pixelWidth / (float)vp.TileWidth);
-            vp.TileNumY = Mathf.CeilToInt((float)vp.MainCamera.pixelHeight / (float)vp.TileHeight);
+            vp.TileNumX = Mathf.CeilToInt(camera.pixelWidth / (float)vp.TileWidth);
+            vp.TileNumY = Mathf.CeilToInt(camera.pixelHeight / (float)vp.TileHeight);
             
             // 在这里使用JobSystem调度视锥剔除计算
-            var frustumPlanes = GeometryUtility.CalculateFrustumPlanes(vp.MainCamera);
+            var frustumPlanes = GeometryUtility.CalculateFrustumPlanes(camera);
             NativeArray<RendererBoundsData> m_RendererBoundsNA = VertexProfilerUtil.ConvertToNativeArray(m_RendererBoundsData, Allocator.TempJob);
             NativeArray<uint> VisibleFlagNA = new NativeArray<uint>(m_RendererNum, Allocator.TempJob);
             NativeArray<Plane> frustumPlanesNA = VertexProfilerUtil.ConvertToNativeArray(frustumPlanes, Allocator.TempJob);
@@ -229,7 +222,7 @@ namespace VertexProfilerTool
             cmd.SetComputeMatrixParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_MATRIX_VP, m_vp);
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_REVERSED_Z, SystemInfo.usesReversedZBuffer ? 1 : 0);
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._CullMode, (int)ECullMode);
-            cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._ScreenParams, new Vector4(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, 1.0f / vp.MainCamera.pixelWidth, 1.0f / vp.MainCamera.pixelHeight));
+            cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._ScreenParams, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / camera.pixelWidth, 1.0f / camera.pixelHeight));
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_UV_STARTS_AT_TOP, SystemInfo.graphicsUVStartsAtTop ? 1 : 0);
             cmd.SetComputeTextureParam(CalculateVertexByTilesCS, CalculateVertexKernel, VertexProfilerUtil._RenderIdAndDepthRT, m_OutputRenderIdRT);
             cmd.SetComputeTextureParam(CalculateVertexByTilesCS, CalculateVertexKernel, VertexProfilerUtil._TileProfilerRTUint, m_TileProfilerUIntRT);
@@ -238,7 +231,7 @@ namespace VertexProfilerTool
             cmd.SetComputeTextureParam(CalculateVertexByTilesCS, CalculateVertexKernel2, VertexProfilerUtil._TileProfilerRTUint, m_TileProfilerUIntRT);
             cmd.SetComputeTextureParam(CalculateVertexByTilesCS, CalculateVertexKernel2, VertexProfilerUtil._TileProfilerRTUint2, m_TileProfilerUInt2RT);
 
-            cmd.SetComputeVectorParam(GenerateProfilerRTCS, VertexProfilerUtil._ScreenParams, new Vector4(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, 1.0f / vp.MainCamera.pixelWidth, 1.0f / vp.MainCamera.pixelHeight));
+            cmd.SetComputeVectorParam(GenerateProfilerRTCS, VertexProfilerUtil._ScreenParams, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / camera.pixelWidth, 1.0f / camera.pixelHeight));
             cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._HeatMapRange, vp.HeatMapRange);
             cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._HeatMapStep, vp.HeatMapStep);
             cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._HeatMapOffsetCount, vp.HeatMapOffsetCount);
@@ -249,7 +242,7 @@ namespace VertexProfilerTool
             cmd.SetComputeTextureParam(GenerateProfilerRTCS, GenerateProfilerKernel, VertexProfilerUtil._TileProfilerRT, m_TileProfilerRT);
 
             cmd.SetGlobalTexture(VertexProfilerUtil._TileProfilerRT, m_TileProfilerRT);
-            cmd.SetGlobalTexture(VertexProfilerUtil._HeatMapTex, vp.HeatMapTex);
+            cmd.SetGlobalTexture(VertexProfilerUtil._HeatMapTex, m_Settings.m_FeatureData.textures.heatMapTex);
             
             cmd.SetGlobalInt(VertexProfilerUtil._ColorRangeSettingCount, m_ColorRangeSettings.Length);
             cmd.SetGlobalBuffer(VertexProfilerUtil._ColorRangeSetting, m_ColorRangeSettingBuffer);

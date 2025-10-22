@@ -26,21 +26,18 @@ namespace VertexProfilerTool
         
         private RTHandle m_TileProfilerRT;
 
-        public VertexProfilerModeOnlyTileRenderPass() : base()
-        {
-            EDisplayType = DisplayType.OnlyTile;
-        }
 
-        public override void Setup()
+        public override void Setup(VertexProfilerRendererFeature.Settings settings)
         {
+	        base.Setup(settings);
             if (vp != null)
             {
                 vp.ProfilerMode = this;
                 EProfilerType = vp.EProfilerType;
                 CheckColorRangeData(true);
-                CalculateVertexByTilesCS = vp.CalculateVertexByTilesCS;
-                GenerateProfilerRTCS = vp.GenerateProfilerRTCS;
-                VertexProfilerReplaceShader = vp.VertexProfilerReplaceShader;
+                CalculateVertexByTilesCS = m_Settings.m_FeatureData.shaders.calculateVertexByTilesCS;;
+                GenerateProfilerRTCS = m_Settings.m_FeatureData.shaders.generateProfilerRTCS;
+                VertexProfilerReplaceShader = m_Settings.m_FeatureData.shaders.vertexProfilerReplaceShader;
             };
         }
 
@@ -56,17 +53,10 @@ namespace VertexProfilerTool
 
             ReleaseAllComputeBuffer();
         }
-        
-        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
-        {
-            base.OnCameraSetup(cmd, ref renderingData);
-            EDisplayType = DisplayType.OnlyTile;
-        }
 
         public override bool CheckProfilerEnabled()
         {
-            return vp != null 
-                   && vp.EnableProfiler
+            return vp != null
                    && CalculateVertexByTilesCS != null 
                    && GenerateProfilerRTCS != null 
                    && VertexProfilerReplaceShader != null;
@@ -158,24 +148,25 @@ namespace VertexProfilerTool
             }
         }
 
-        public override void SetupConstantBufferData(CommandBuffer cmd, ref ScriptableRenderContext context)
+        public override void SetupConstantBufferData(CommandBuffer cmd, ref ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            base.SetupConstantBufferData(cmd, ref context);
+            base.SetupConstantBufferData(cmd, ref context, ref renderingData);
 
+            var camera = renderingData.cameraData.camera;
             // 相机矩阵
-            Matrix4x4 m_v = vp.MainCamera.worldToCameraMatrix;
-            Matrix4x4 m_p = GL.GetGPUProjectionMatrix(vp.MainCamera.projectionMatrix, SystemInfo.graphicsUVStartsAtTop);
+            Matrix4x4 m_v = camera.worldToCameraMatrix;
+            Matrix4x4 m_p = GL.GetGPUProjectionMatrix(camera.projectionMatrix, SystemInfo.graphicsUVStartsAtTop);
             Matrix4x4 m_vp = m_p * m_v;
             
             // 外部处理
-            vp.TileNumX = Mathf.CeilToInt((float)vp.MainCamera.pixelWidth / (float)vp.TileWidth);
-            vp.TileNumY = Mathf.CeilToInt((float)vp.MainCamera.pixelHeight / (float)vp.TileHeight);
+            vp.TileNumX = Mathf.CeilToInt(camera.pixelWidth / (float)vp.TileWidth);
+            vp.TileNumY = Mathf.CeilToInt(camera.pixelHeight / (float)vp.TileHeight);
 
             m_TileVerticesCountBuffer = new ComputeBuffer(vp.TileNumX * vp.TileNumY, Marshal.SizeOf(typeof(uint)));
             m_TileVerticesCountBuffer.SetData(new uint[vp.TileNumX * vp.TileNumY]);
             
             // 在这里使用JobSystem调度视锥剔除计算
-            var frustumPlanes = GeometryUtility.CalculateFrustumPlanes(vp.MainCamera);
+            var frustumPlanes = GeometryUtility.CalculateFrustumPlanes(camera);
             NativeArray<RendererBoundsData> m_RendererBoundsNA = VertexProfilerUtil.ConvertToNativeArray(m_RendererBoundsData, Allocator.TempJob);
             NativeArray<uint> VisibleFlagNA = new NativeArray<uint>(m_RendererNum, Allocator.TempJob);
             NativeArray<Plane> frustumPlanesNA = VertexProfilerUtil.ConvertToNativeArray(frustumPlanes, Allocator.TempJob);
@@ -197,7 +188,7 @@ namespace VertexProfilerTool
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileNumX, vp.TileNumX);
             cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileParams2, new Vector4(1.0f / vp.TileWidth, 1.0f / vp.TileHeight, 1.0f / vp.TileNumX, 1.0f / vp.TileNumY));
             cmd.SetComputeMatrixParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_MATRIX_VP, m_vp);
-            cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._ScreenParams, new Vector4(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, 1.0f / vp.MainCamera.pixelWidth, 1.0f / vp.MainCamera.pixelHeight));
+            cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._ScreenParams, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / camera.pixelWidth, 1.0f / camera.pixelHeight));
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_UV_STARTS_AT_TOP, SystemInfo.graphicsUVStartsAtTop ? 1 : 0);
             cmd.SetComputeBufferParam(CalculateVertexByTilesCS, CalculateVertexKernel, VertexProfilerUtil._TileVerticesCount, m_TileVerticesCountBuffer);
 
@@ -265,10 +256,10 @@ namespace VertexProfilerTool
         uint[] tileVerticesCountData = null;
         private RTHandle m_ScreenshotRT;
 
-        public override void Setup()
+        public override void Setup(VertexProfilerRendererFeature.Settings settings)
         {
             if (vp == null) return;
-
+			base.Setup(settings);
             vp.LogMode = this;
         }
         
@@ -298,7 +289,7 @@ namespace VertexProfilerTool
             RenderTextureDescriptor desc = new RenderTextureDescriptor(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, 0);
             desc.enableRandomWrite = true;
             VertexProfilerUtil.ReAllocRTIfNeeded(ref m_ScreenshotRT, desc, FilterMode.Point, TextureWrapMode.Clamp, false, name: "ScreenShot");
-            cmd.Blit(colorAttachment, m_ScreenshotRT, vp.GammaCorrectionEffectMat);
+            cmd.Blit(colorAttachment, m_ScreenshotRT, m_Settings.m_FeatureData.materials.GammaCorrectionEffectMat);
             
             // 拉取数据，异步回读
             int tileNum = vp.TileNumX * vp.TileNumY;
@@ -356,7 +347,7 @@ namespace VertexProfilerTool
                     //应用
                     screenShotWithGrids.Apply();
                     // 写入Excel
-                    VertexProfilerEvent.CallLogoutToExcel(vp.EDisplayType, logoutDataList, m_ScreenshotRT.rt, screenShotWithGrids);
+                    VertexProfilerEvent.CallLogoutToExcel(DisplayType.OnlyTile, logoutDataList, m_ScreenshotRT.rt, screenShotWithGrids);
                     // 释放资源
                     Object.DestroyImmediate(screenShotWithGrids);
                 }

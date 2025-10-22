@@ -6,6 +6,7 @@ using System.Text;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace VertexProfilerTool
 {
@@ -604,6 +605,54 @@ namespace VertexProfilerTool
             }
 
             return false;
+        }
+        
+        public static UniversalRendererData GetRendererDataByIndex(UniversalRenderPipelineAsset pipelineAsset, int index)
+        {
+	        if (pipelineAsset == null) return null;
+    
+	        try
+	        {
+		        var fieldInfo = typeof(UniversalRenderPipelineAsset).GetField(
+			        "m_RendererDataList", 
+			        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+		        );
+        
+		        if (fieldInfo != null)
+		        {
+			        var rendererDataList = fieldInfo.GetValue(pipelineAsset) as ScriptableRendererData[];
+			        if (rendererDataList != null && index >= 0 && index < rendererDataList.Length)
+			        {
+				        return rendererDataList[index] as UniversalRendererData;
+			        }
+		        }
+	        }
+	        catch (System.Exception e)
+	        {
+		        Debug.LogError($"通过索引获取 Renderer Data 失败: {e.Message}");
+	        }
+    
+	        return null;
+        }
+        
+        public static void ModifyRendererFeature<T>(UniversalRendererData rendererData, Action<T> modification) where T : ScriptableRendererFeature
+        {
+	        if (rendererData != null)
+	        {
+		        foreach (var feature in rendererData.rendererFeatures)
+		        {
+			        if (feature is T targetFeature)
+			        {
+				        modification?.Invoke(targetFeature);
+                
+#if UNITY_EDITOR
+				        UnityEditor.EditorUtility.SetDirty(rendererData);
+#endif
+                
+				        break;
+			        }
+		        }
+	        }
         }
     }
 }
