@@ -52,7 +52,7 @@ namespace VertexProfilerTool
         {
             if (renderingData.cameraData.cameraType != CameraType.Game) return;
             
-            // ReleaseAllComputeBuffer();
+            ReleaseAllComputeBuffer();
             if (!CheckProfilerEnabled())
             {
                 Shader.SetGlobalInt(VertexProfilerUtil._EnableVertexProfiler, 0);
@@ -194,14 +194,30 @@ namespace VertexProfilerTool
 
         private VertexProfilerRendererFeature.Settings m_Settings;
         
-
+        string[] m_ShaderKeywords = new string[1];
         public void Setup(VertexProfilerRendererFeature.Settings settings)
         {
 	        m_Settings = settings;
         }
-
-        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
+        
+        public static string GetDebugKeyword(DisplayType debugMode)
         {
+	        switch (debugMode)
+	        {
+		        case DisplayType.OnlyTile:
+			        return "_DEBUG_ONLY_TILE_MODE";
+		        case DisplayType.OnlyMesh:
+			        return "_DEBUG_ONLY_MESH_MODE";
+		        case DisplayType.Overdraw:
+			        return "_DEBUG_OVERDRAW_MODE";
+		        case DisplayType.TileBasedMesh:
+			        return "_DEBUG_TILE_BASED_MESH_MODE";
+		        case DisplayType.MeshHeatMap:
+			        return "_DEBUG_MESH_HEAT_MAP_MODE";
+		        case DisplayType.None:
+		        default:
+			        return "_";
+	        }
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -213,10 +229,10 @@ namespace VertexProfilerTool
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
             
-            vp = VertexProfilerModeBaseRenderPass.vp;
-            if (vp == null) return;
-            
-            Blit(cmd, ref renderingData, m_Settings.m_FeatureData.materials.ApplyProfilerDataByPostEffectMat);
+            var material = m_Settings.m_FeatureData.materials.ApplyProfilerDataByPostEffectMat;
+            m_ShaderKeywords[0] = GetDebugKeyword(m_Settings.displayType);
+            material.shaderKeywords = m_ShaderKeywords;
+            Blit(cmd, ref renderingData, material);
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }

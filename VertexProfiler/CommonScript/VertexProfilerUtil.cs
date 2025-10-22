@@ -285,8 +285,6 @@ namespace VertexProfilerTool
 
     public static class VertexProfilerUtil
     {
-        public static bool ForceReloadProfilerModeAfterScriptCompile = false;
-        
         public static readonly int _EnableVertexProfiler = Shader.PropertyToID("_EnableVertexProfiler");
         public static readonly int _DisplayType = Shader.PropertyToID("_DisplayType");
         public static readonly int _RendererTotalNum = Shader.PropertyToID("_RendererTotalNum");
@@ -329,9 +327,6 @@ namespace VertexProfilerTool
         public static readonly int _TileNumX = Shader.PropertyToID("_TileNumX");
         public static readonly int _TileNumY = Shader.PropertyToID("_TileNumY");
         public static readonly int _TileCount = Shader.PropertyToID("_TileCount");
-        
-        public static readonly int _MainTex = Shader.PropertyToID("_MainTex");
-
 
         // 默认的顶点/棋盘格密度阈值设置，单位 顶点数/1万像素 (简单模式)
         public static readonly int[] SimpleModeOnlyTileDensitySetting = new int[3]

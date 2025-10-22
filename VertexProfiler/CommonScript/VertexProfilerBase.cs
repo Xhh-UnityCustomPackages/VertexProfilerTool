@@ -176,12 +176,12 @@ namespace VertexProfilerTool
         }
         
         #region UI
-        public void CheckShowUIGrid()
+        public void CheckShowUIGrid(DisplayType displayType)
         {
             // 检查是否需要显示uiTile
-            bool showCanvas = EDisplayType != DisplayType.OnlyMesh
-                              && EDisplayType != DisplayType.MeshHeatMap 
-                              && EDisplayType != DisplayType.Overdraw 
+            bool showCanvas = displayType != DisplayType.OnlyMesh
+                              && displayType != DisplayType.MeshHeatMap 
+                              && displayType != DisplayType.Overdraw 
                               && !HideGoTUITile;
             if (tileCanvas != null && tileCanvas.gameObject.activeSelf != showCanvas)
             {

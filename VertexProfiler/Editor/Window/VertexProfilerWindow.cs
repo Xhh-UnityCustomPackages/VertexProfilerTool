@@ -44,7 +44,7 @@ namespace VertexProfilerTool
         private SerializedProperty TileHeight;
         private bool EnableProfiler = true;
         private SerializedProperty EProfilerType;
-        private UpdateType EUpdateType = UpdateType.EveryFrame;
+        private UpdateType EUpdateType = UpdateType.Once;
         private DisplayType EDisplayType;
         private SerializedProperty ProfilerModeDensityList;
         // private SerializedProperty HeatMapTex;
@@ -299,8 +299,6 @@ namespace VertexProfilerTool
                 fullyInited = true;
                 
                 vertexProfilerURP.MainCamera = Camera.main;
-                // vertexProfilerURP.CalculateVertexByTilesCS = CalculateVertexByTilesCS;
-                // vertexProfilerURP.GenerateProfilerRTCS = GenerateProfilerRTCS;
                 vertexProfilerURP.GoUITile = GoUITile;
                 logTickTimer = 0.99f; // 保证第一次刷新不会隔太久
 
@@ -443,7 +441,7 @@ namespace VertexProfilerTool
                 if (EditorGUI.EndChangeCheck())
                 {
                     serializedObject.ApplyModifiedProperties();
-                    vertexProfilerURP.CheckShowUIGrid();
+                    vertexProfilerURP.CheckShowUIGrid(EDisplayType);
                 }
                 if (!HideGoTUITile.boolValue)
                 {
@@ -1043,7 +1041,7 @@ namespace VertexProfilerTool
         // 分类填入profile数据，注意depth要从1开始
         private void AddOnlyTileProfilerElements(ref int Id)
         {
-            List<ProfilerDataContents> logData = GetLogoutDataList();
+            List<ProfilerDataContents> logData =  GetLogoutDataList();
             if (logData == null) return;
             
             int classifyProfilerListCount = classifyProfilerList.Count;
@@ -1125,7 +1123,7 @@ namespace VertexProfilerTool
 	        {
 		        feature.EnableProfiler = true;
 	        });
-	        vertexProfilerURP.StartProfiler();
+	        vertexProfilerURP.CheckShowUIGrid(EDisplayType);
         }
         private void StopProfiler()
         {
@@ -1135,13 +1133,13 @@ namespace VertexProfilerTool
 	        {
 		        feature.EnableProfiler = false;
 	        });
-	        vertexProfilerURP.StopProfiler();
+	        vertexProfilerURP.CheckShowUIGrid(EDisplayType);
         }
 
         private void CheckProfilerMode()
         {
 	        vertexProfilerURP.EDisplayType = EDisplayType;
-	        vertexProfilerURP.CheckProfilerMode();
+	        vertexProfilerURP.CheckShowUIGrid(EDisplayType);
 	        UniversalRenderPipelineAsset urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
 	        UniversalRendererData rendererData = VertexProfilerUtil.GetRendererDataByIndex(urpAsset, 0);
 	        VertexProfilerUtil.ModifyRendererFeature<VertexProfilerRendererFeature>(rendererData, feature =>

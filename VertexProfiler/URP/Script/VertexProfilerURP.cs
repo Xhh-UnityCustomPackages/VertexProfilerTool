@@ -37,39 +37,14 @@ namespace VertexProfilerTool
         {
             NeedUpdateUITileGrid = true;
             InitCamera();
-            CheckShowUIGrid();
-        }
-        private new void Update()
-        {
-            base.Update();
-            if (VertexProfilerUtil.ForceReloadProfilerModeAfterScriptCompile)
-            {
-                CheckProfilerMode();
-                VertexProfilerUtil.ForceReloadProfilerModeAfterScriptCompile = false;
-            }
         }
 
         #region public function
-
-        public void StartProfiler()
-        {
-            CheckShowUIGrid();
-        }
-
-        public void StopProfiler()
-        {
-            CheckShowUIGrid();
-        }
         
         public void ChangeProfilerType(int index)
         {
             EProfilerType = (ProfilerType)index;
             ProfilerMode?.ChangeProfilerType(EProfilerType);
-        }
-
-        public void CheckProfilerMode()
-        {
-            CheckShowUIGrid();
         }
         
         #endregion
