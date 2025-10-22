@@ -38,6 +38,7 @@ namespace VertexProfilerTool
         /// 输出Mesh重绘
         /// </summary>
         Overdraw = 4,
+        None,
     }
     
     // 调试类型

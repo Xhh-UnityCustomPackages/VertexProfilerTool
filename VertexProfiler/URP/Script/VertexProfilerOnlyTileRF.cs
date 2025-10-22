@@ -11,53 +11,6 @@ using UnityEngine.Rendering.Universal;
 
 namespace VertexProfilerTool
 {
-    /// <summary>
-    /// OnlyTile
-    /// </summary>
-    public class VertexProfilerOnlyTileRF : ScriptableRendererFeature
-    {
-        VertexProfilerModeOnlyTileRenderPass m_ScriptablePass; 
-        VertexProfilerOnlyTileLogRenderPass m_LogPass;
-        VertexProfilerPostEffectRenderPass m_PostEffectPass;
-        public override void Create()
-        {
-            m_ScriptablePass = new VertexProfilerModeOnlyTileRenderPass();
-            m_ScriptablePass.renderPassEvent = RenderPassEvent.AfterRenderingGbuffer;
-            
-            m_LogPass = new VertexProfilerOnlyTileLogRenderPass();
-            m_LogPass.renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
-            
-            m_PostEffectPass = new VertexProfilerPostEffectRenderPass();
-            m_PostEffectPass.renderPassEvent = RenderPassEvent.AfterRenderingPostProcessing;
-        }
-
-        public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
-        {
-            if (renderingData.cameraData.cameraType != CameraType.Game) return;
-            
-            m_ScriptablePass.Setup();
-            renderer.EnqueuePass(m_ScriptablePass);
-            m_LogPass.Setup();
-            renderer.EnqueuePass(m_LogPass);
-            renderer.EnqueuePass(m_PostEffectPass);
-        }
-        
-        private void OnDisable()
-        {
-            m_ScriptablePass?.OnDisable();
-            m_LogPass?.OnDisable();
-        }
-        
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                m_ScriptablePass?.OnDisable();
-                m_LogPass?.OnDisable();
-            }
-        }
-    }
-    
     public class VertexProfilerModeOnlyTileRenderPass : VertexProfilerModeBaseRenderPass
     {
         private ComputeShader CalculateVertexByTilesCS;
@@ -78,7 +31,7 @@ namespace VertexProfilerTool
             EDisplayType = DisplayType.OnlyTile;
         }
 
-        public void Setup()
+        public override void Setup()
         {
             if (vp != null)
             {
@@ -312,7 +265,7 @@ namespace VertexProfilerTool
         uint[] tileVerticesCountData = null;
         private RTHandle m_ScreenshotRT;
 
-        public void Setup()
+        public override void Setup()
         {
             if (vp == null) return;
 
@@ -345,7 +298,7 @@ namespace VertexProfilerTool
             RenderTextureDescriptor desc = new RenderTextureDescriptor(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, 0);
             desc.enableRandomWrite = true;
             VertexProfilerUtil.ReAllocRTIfNeeded(ref m_ScreenshotRT, desc, FilterMode.Point, TextureWrapMode.Clamp, false, name: "ScreenShot");
-            cmd.Blit(colorAttachmentHandle, m_ScreenshotRT, vp.GammaCorrectionEffectMat);
+            cmd.Blit(colorAttachment, m_ScreenshotRT, vp.GammaCorrectionEffectMat);
             
             // 拉取数据，异步回读
             int tileNum = vp.TileNumX * vp.TileNumY;

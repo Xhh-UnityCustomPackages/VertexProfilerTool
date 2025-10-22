@@ -12,54 +12,6 @@ using ProfilingScope = UnityEngine.Rendering.ProfilingScope;
 
 namespace VertexProfilerTool
 {
-    /// <summary>
-    /// OnlyMesh 对于替换渲染的实现方案，可以用多材质的方式选择性渲染来实现
-    /// </summary>
-    public class VertexProfilerOnlyMeshRF : ScriptableRendererFeature
-    {
-        VertexProfilerModeOnlyMeshRenderPass m_ScriptablePass;
-        VertexProfilerOnlyMeshLogRenderPass m_LogPass;
-        VertexProfilerPostEffectRenderPass m_PostEffectPass;
-        
-        public override void Create()
-        {
-            m_ScriptablePass = new VertexProfilerModeOnlyMeshRenderPass();
-            m_ScriptablePass.renderPassEvent = RenderPassEvent.AfterRenderingGbuffer;
-            
-            m_LogPass = new VertexProfilerOnlyMeshLogRenderPass();
-            m_LogPass.renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
-            
-            m_PostEffectPass = new VertexProfilerPostEffectRenderPass();
-            m_PostEffectPass.renderPassEvent = RenderPassEvent.AfterRenderingPostProcessing;
-        }
-
-        public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
-        {
-            if (renderingData.cameraData.cameraType != CameraType.Game) return;
-            
-            m_ScriptablePass.Setup();
-            renderer.EnqueuePass(m_ScriptablePass);
-            m_LogPass.Setup();
-            renderer.EnqueuePass(m_LogPass);
-            renderer.EnqueuePass(m_PostEffectPass);
-        }
-        
-        private void OnDisable()
-        {
-            m_ScriptablePass?.OnDisable();
-            m_LogPass?.OnDisable();
-        }
-        
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                m_ScriptablePass?.OnDisable();
-                m_LogPass?.OnDisable();
-            }
-        }
-    }
-    [System.Serializable]
     public class VertexProfilerModeOnlyMeshRenderPass : VertexProfilerModeBaseRenderPass
     {
         private Material MeshPixelCalMat;
@@ -82,7 +34,7 @@ namespace VertexProfilerTool
             m_ProfilingSampler = new ProfilingSampler("PixelCalShader");
         }
 
-        public void Setup()
+        public override void Setup()
         {
             // 不能在构造函数初始化的部分在这创建
             URPMeshPixelCalShaderTagId = new List<ShaderTagId>() {new ShaderTagId("SRPDefaultUnlit"), new ShaderTagId("UniversalForward"), new ShaderTagId("UniversalForwardOnly")};
@@ -207,7 +159,6 @@ namespace VertexProfilerTool
                     {
                         MaterialPropertyBlock block = new MaterialPropertyBlock();
                         renderer.GetPropertyBlock(block, k);
-                        block.SetTexture(VertexProfilerUtil._MainTex, smats[k].mainTexture);
                         block.SetInt(VertexProfilerUtil._RendererId, i);
                         block.SetInt(VertexProfilerUtil._VertexCount, mesh.vertexCount);
                         renderer.SetPropertyBlock(block, k);
@@ -312,7 +263,7 @@ namespace VertexProfilerTool
         uint[] pixelCountData = null;
         private RTHandle m_ScreenshotRT;
 
-        public void Setup()
+        public override void Setup()
         {
             if (vp == null) return;
 
@@ -333,11 +284,11 @@ namespace VertexProfilerTool
         }
         public override void DispatchScreenShotAndReadBack(CommandBuffer cmd, ref ScriptableRenderContext context)
         {
-            if (vp == null 
-                || vp.LogMode != this 
-                || VertexProfilerModeBaseRenderPass.m_PixelCounterBuffer == null 
-                || !VertexProfilerModeBaseRenderPass.m_PixelCounterBuffer.IsValid()) 
-                return;
+	        if (vp == null) return;
+	        if (vp.LogMode != this) return;
+	        if (VertexProfilerModeBaseRenderPass.m_PixelCounterBuffer == null
+	            || !VertexProfilerModeBaseRenderPass.m_PixelCounterBuffer.IsValid())
+		        return;
             
             pixelCountDataReady = false;
             pixelCountData = null;
@@ -346,7 +297,8 @@ namespace VertexProfilerTool
             RenderTextureDescriptor desc = new RenderTextureDescriptor(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, 0);
             desc.enableRandomWrite = true;
             VertexProfilerUtil.ReAllocRTIfNeeded(ref m_ScreenshotRT, desc, FilterMode.Point, TextureWrapMode.Clamp, false, name: "ScreenShot");
-            cmd.Blit(colorAttachmentHandle, m_ScreenshotRT, vp.GammaCorrectionEffectMat);
+           
+            cmd.Blit(colorAttachment, m_ScreenshotRT, vp.GammaCorrectionEffectMat);
             
             // 拉取数据，异步回读
             cmd.RequestAsyncReadback(VertexProfilerModeBaseRenderPass.m_PixelCounterBuffer,

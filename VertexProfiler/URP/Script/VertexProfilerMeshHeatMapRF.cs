@@ -11,42 +11,6 @@ using ProfilingScope = UnityEngine.Rendering.ProfilingScope;
 
 namespace VertexProfilerTool
 {
-    public class VertexProfilerMeshHeatMapRF : ScriptableRendererFeature
-    {
-        VertexProfilerModeMeshHeatMapRenderPass m_ScriptablePass;
-        VertexProfilerPostEffectRenderPass m_PostEffectPass;
-        public override void Create()
-        {
-            m_ScriptablePass = new VertexProfilerModeMeshHeatMapRenderPass();
-            m_ScriptablePass.renderPassEvent = RenderPassEvent.AfterRenderingGbuffer;
-            
-            m_PostEffectPass = new VertexProfilerPostEffectRenderPass();
-            m_PostEffectPass.renderPassEvent = RenderPassEvent.AfterRenderingPostProcessing;
-        }
-
-        public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
-        {
-            if (renderingData.cameraData.cameraType != CameraType.Game) return;
-            
-            m_ScriptablePass.Setup();
-            renderer.EnqueuePass(m_ScriptablePass);
-            renderer.EnqueuePass(m_PostEffectPass);
-        }
-        
-        private void OnDisable()
-        {
-            m_ScriptablePass?.OnDisable();
-        }
-        
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                m_ScriptablePass?.OnDisable();
-            }
-        }
-    }
-    
     [System.Serializable]
     public class VertexProfilerModeMeshHeatMapRenderPass : VertexProfilerModeBaseRenderPass
     {
@@ -82,7 +46,7 @@ namespace VertexProfilerTool
             m_ProfilingSamplerOutputRenderer = new ProfilingSampler("Output Renderer Data");
         }
 
-        public void Setup()
+        public override void Setup()
         {
             // 不能在构造函数初始化的部分在这创建
             URPOutputRendererTagId = new List<ShaderTagId>() {new ShaderTagId("SRPDefaultUnlit"), new ShaderTagId("UniversalForward"), new ShaderTagId("UniversalForwardOnly")};
@@ -216,7 +180,6 @@ namespace VertexProfilerTool
                     {
                         MaterialPropertyBlock block = new MaterialPropertyBlock();
                         renderer.GetPropertyBlock(block, k);
-                        block.SetTexture(VertexProfilerUtil._MainTex, smats[k].mainTexture);
                         block.SetInt(VertexProfilerUtil._RendererId, i);
                         block.SetInt(VertexProfilerUtil._VertexCount, mesh.vertexCount);
                         renderer.SetPropertyBlock(block, k);

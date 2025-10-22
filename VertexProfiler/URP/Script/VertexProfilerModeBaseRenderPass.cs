@@ -35,6 +35,10 @@ namespace VertexProfilerTool
             
         }
 
+        public virtual void Setup()
+        {
+        }
+
         public virtual void OnDisable()
         {
             ReleaseAllComputeBuffer();
@@ -47,7 +51,7 @@ namespace VertexProfilerTool
         {
             if (renderingData.cameraData.cameraType != CameraType.Game) return;
             
-            ReleaseAllComputeBuffer();
+            // ReleaseAllComputeBuffer();
             if (!CheckProfilerEnabled())
             {
                 Shader.SetGlobalInt(VertexProfilerUtil._EnableVertexProfiler, 0);
@@ -219,7 +223,11 @@ namespace VertexProfilerTool
     {
         public static VertexProfilerURP vp;
         public List<ProfilerDataContents> logoutDataList = new List<ProfilerDataContents>();
-        
+
+        public virtual void Setup()
+        {
+        }
+
         public virtual void OnDisable()
         {
             
