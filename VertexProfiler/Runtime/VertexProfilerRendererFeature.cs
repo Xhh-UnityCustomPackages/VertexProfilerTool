@@ -2,6 +2,7 @@
 using UnityEngine.Rendering.Universal;
 using System;
 using System.Collections.Generic;
+using Unity.Collections;
 
 #if UNITY_EDITOR
 using UnityEditor;

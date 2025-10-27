@@ -21,11 +21,13 @@ namespace VertexProfilerTool
         
         public VertexProfilerModeBaseRenderPass ProfilerMode;
         public VertexProfilerLogBaseRenderPass LogMode;
-        
+
+#if UNITY_EDITOR
         private void Awake()
         {
-            InitUITile();
+	        InitUITile();
         }
+#endif
 
         void Start()
         {
