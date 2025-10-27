@@ -26,7 +26,6 @@ namespace VertexProfilerTool
         [NonReorderable]
         public List<int> DensityList = new List<int>();
         public bool NeedSyncColorRangeSetting = true;
-        public CullMode ECullMode = CullMode.Back;
         
         private void Awake()
         {

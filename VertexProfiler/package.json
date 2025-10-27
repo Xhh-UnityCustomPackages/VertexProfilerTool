@@ -1,0 +1,20 @@
+{
+  "name": "com.game.tool-vertexprofiler",
+  "version": "0.0.1",
+  "unity": "2022.3",
+  "displayName": "Vertex Profiler",
+  "dependencies": {
+    "com.unity.mathematics": "1.2.1",
+    "com.unity.burst": "1.8.9",
+    "com.unity.render-pipelines.core": "14.0.11"
+  },
+  "keywords": [
+    "graphics",
+    "performance",
+    "rendering",
+    "mobile",
+    "render",
+    "pipeline"
+  ],
+  "description": "\u9876\u70b9\u5bc6\u5ea6\u68c0\u6d4b\u5de5\u5177"
+}

@@ -167,8 +167,8 @@ namespace VertexProfilerTool
 
             var camera = renderingData.cameraData.camera;
             // 外部处理
-            vp.TileNumX = Mathf.CeilToInt(camera.pixelWidth / (float)vp.TileWidth);
-            vp.TileNumY = Mathf.CeilToInt(camera.pixelHeight / (float)vp.TileHeight);
+            vp.TileNumX = Mathf.CeilToInt(camera.pixelWidth / (float)m_Settings.TileWidth);
+            vp.TileNumY = Mathf.CeilToInt(camera.pixelHeight / (float)m_Settings.TileHeight);
             
             // 在这里使用JobSystem调度视锥剔除计算
             var frustumPlanes = GeometryUtility.CalculateFrustumPlanes(camera);

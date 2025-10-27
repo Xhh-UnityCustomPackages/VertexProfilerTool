@@ -5,19 +5,16 @@ using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using UnityEngine.UIElements;
-using Object = UnityEngine.Object;
 
 namespace VertexProfilerTool
 {
     public class VertexProfilerWindow : EditorWindow
     {
-        private string[] TextureExtensions = new string[] { ".png", ".jpg", ".jpeg", ".tga", ".bmp" };
+	    private const string PackagePath = "Packages/com.game.tool-vertexprofiler/";
         // 所需的ComputeShader路径
-        private string ComputeShaderResPath = "Assets/VertexProfiler/ComputeShader/";
-        private string UITIleGoResPath = "Assets/VertexProfiler/TestMeshes/";
-        private string HeatMapResPath = "Assets/VertexProfiler/Textures/";
-        private string TempHeatMapName = "TempHeatMapTex";
+        private string ComputeShaderResPath = PackagePath + "Shader/ComputeShader/";
+        private string UITIleGoResPath = PackagePath + "TestMeshes/";
+        private string HeatMapResPath = PackagePath + "Textures/";
         
       
         /// <summary>
@@ -25,6 +22,7 @@ namespace VertexProfilerTool
         /// </summary>
         private VertexProfilerURP vertexProfilerURP;
 
+        private VertexProfilerRendererFeature VertexProfilerRendererFeature;
         
         
         /// <summary>
@@ -40,20 +38,20 @@ namespace VertexProfilerTool
         private SerializedObject serializedObject;
         
         private SerializedProperty SyncSceneCameraToMainCamera;
-        private SerializedProperty TileWidth;
-        private SerializedProperty TileHeight;
+        private int TileWidth;
+        private int TileHeight;
         private bool EnableProfiler = true;
         private SerializedProperty EProfilerType;
         private UpdateType EUpdateType = UpdateType.Once;
         private DisplayType EDisplayType;
         private SerializedProperty ProfilerModeDensityList;
         // private SerializedProperty HeatMapTex;
-        private SerializedProperty HeatMapRange;
-        private SerializedProperty HeatMapStep;
+        private int HeatMapRange;
+        private int HeatMapStep;
         // private SerializedProperty HeatMapGradient;
-        private SerializedProperty ECullMode;
-        private SerializedProperty HeatMapRampMin;
-        private SerializedProperty HeatMapRampMax;
+        private CullMode ECullMode = CullMode.Back;
+        private float HeatMapRampMin;
+        private float HeatMapRampMax;
 
         private SerializedProperty NeedSyncColorRangeSetting;
         private SerializedProperty NeedUpdateUITileGrid;
@@ -62,8 +60,8 @@ namespace VertexProfilerTool
         private SerializedProperty NeedLogDataToProfilerWindow;
         private SerializedProperty LastLogFrameCount;
         
-        private SerializedProperty HideGoTUITile;
-        private SerializedProperty HideTileNum;
+        private bool HideGoTUITile;
+        private bool HideTileNum;
 
         private GUIContent c_EnableProfiler = new GUIContent("启用");
         private GUIContent c_SyncSceneCameraToMainCamera = new GUIContent("Scene视图同步到Game视图");
@@ -206,22 +204,6 @@ namespace VertexProfilerTool
                 Debug.LogError(errorContent);
             }
         }
-
-        private void LoadTexture(string folderPath, string name, ref Texture2D tex)
-        {
-            foreach (var extension in TextureExtensions)
-            {
-                string assetPath = string.Format("{0}{1}{2}", folderPath, name, extension);
-                tex = AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
-                if (tex != null) break;
-            }
-            if (tex == null && !name.Equals(TempHeatMapName))
-            {
-                string errorContent = string.Format("Texture {0} 加载失败", name);
-                ResErrorLogContent.Add(errorContent);
-                Debug.LogError(errorContent);
-            }
-        }
         
 
         private bool CheckResourceReady()
@@ -243,6 +225,16 @@ namespace VertexProfilerTool
         // 判断是否需要显示添加脚本按钮
         private bool CheckShowAddVertexProfilerBtn(bool onlyCheck = false)
         {
+	        UniversalRenderPipelineAsset urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+	        UniversalRendererData rendererData = VertexProfilerUtil.GetRendererDataByIndex(urpAsset, 0);
+	        foreach (var feature in rendererData.rendererFeatures)
+	        {
+		        if (feature is VertexProfilerRendererFeature targetFeature)
+		        {
+			        VertexProfilerRendererFeature = targetFeature;
+		        }
+	        }
+	        
 	        vertexProfilerURP = vertexProfilerURP != null ? vertexProfilerURP : FindObjectOfType<VertexProfilerURP>();
             Camera mainCamera = Camera.main;
             if (vertexProfilerURP != null && mainCamera != null)
@@ -317,19 +309,19 @@ namespace VertexProfilerTool
             if (serializedObject != null)
             {
                 SyncSceneCameraToMainCamera = serializedObject.FindProperty("SyncSceneCameraToMainCamera");
-                TileWidth = serializedObject.FindProperty("TileWidth");
-                TileHeight = serializedObject.FindProperty("TileHeight");
+                TileWidth = VertexProfilerRendererFeature.settings.TileWidth;
+                TileHeight = VertexProfilerRendererFeature.settings.TileHeight;
                 // EnableProfiler = serializedObject.FindProperty("EnableProfiler");
                 EProfilerType = serializedObject.FindProperty("EProfilerType");
                 // EUpdateType = serializedObject.FindProperty("EUpdateType");
                 // EDisplayType = serializedObject.FindProperty("EDisplayType");
                 // HeatMapTex = serializedObject.FindProperty("HeatMapTex");
-                HeatMapRange = serializedObject.FindProperty("HeatMapRange");
-                HeatMapStep = serializedObject.FindProperty("HeatMapStep");
+                HeatMapRange = VertexProfilerRendererFeature.settings.HeatMapRange;
+                HeatMapStep = VertexProfilerRendererFeature.settings.HeatMapStep;
                 // HeatMapGradient = serializedObject.FindProperty("HeatMapGradient");
-                ECullMode = serializedObject.FindProperty("ECullMode");
-                HeatMapRampMin = serializedObject.FindProperty("HeatMapRampMin");
-                HeatMapRampMax = serializedObject.FindProperty("HeatMapRampMax");
+                // ECullMode = serializedObject.FindProperty("ECullMode");
+                HeatMapRampMin = VertexProfilerRendererFeature.settings.HeatMapRampMin;
+                HeatMapRampMax = VertexProfilerRendererFeature.settings.HeatMapRampMax;
                 
                 ProfilerModeDensityList = serializedObject.FindProperty("DensityList");
                 NeedSyncColorRangeSetting = serializedObject.FindProperty("NeedSyncColorRangeSetting");
@@ -340,8 +332,8 @@ namespace VertexProfilerTool
                 NeedLogDataToProfilerWindow = serializedObject.FindProperty("NeedLogDataToProfilerWindow");
                 LastLogFrameCount = serializedObject.FindProperty("LastLogFrameCount");
                 
-                HideGoTUITile = serializedObject.FindProperty("HideGoTUITile");
-                HideTileNum = serializedObject.FindProperty("HideTileNum");
+                // HideGoTUITile = serializedObject.FindProperty("HideGoTUITile");
+                // HideTileNum = serializedObject.FindProperty("HideTileNum");
                 
                 UpdateColumnComponent();
             }
@@ -437,20 +429,20 @@ namespace VertexProfilerTool
             {
                 EditorGUI.BeginChangeCheck();
                 EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.PropertyField(HideGoTUITile, c_HideGoUITile);
+                HideGoTUITile = EditorGUILayout.Toggle(c_HideGoUITile, HideGoTUITile);
                 if (EditorGUI.EndChangeCheck())
                 {
                     serializedObject.ApplyModifiedProperties();
-                    vertexProfilerURP.CheckShowUIGrid(EDisplayType);
+                    vertexProfilerURP.CheckShowUIGrid(EDisplayType, HideGoTUITile);
                 }
-                if (!HideGoTUITile.boolValue)
+                if (!HideGoTUITile)
                 {
                     EditorGUI.BeginChangeCheck();
-                    EditorGUILayout.PropertyField(HideTileNum, c_HideTileNum);
+                    HideTileNum = EditorGUILayout.Toggle(c_HideTileNum, HideTileNum);
                     if (EditorGUI.EndChangeCheck())
                     {
                         serializedObject.ApplyModifiedProperties();
-                        vertexProfilerURP.SetTileNumShow();
+                        vertexProfilerURP.SetTileNumShow(HideTileNum);
                     }
                 }
                 EditorGUILayout.EndHorizontal();
@@ -458,10 +450,12 @@ namespace VertexProfilerTool
                 if (EProfilerType.enumValueIndex == (int)ProfilerType.Detail)
                 {
                     EditorGUI.BeginChangeCheck();
-                    EditorGUILayout.PropertyField(TileWidth, c_TileWidth);
-                    EditorGUILayout.PropertyField(TileHeight, c_TileHeight);
+                    TileWidth = EditorGUILayout.IntSlider(c_TileWidth, TileWidth, 32, 128);
+                    TileHeight = EditorGUILayout.IntSlider(c_TileHeight, TileHeight, 32, 128);
                     if (EditorGUI.EndChangeCheck())
                     {
+	                    VertexProfilerRendererFeature.settings.TileWidth = TileWidth;
+	                    VertexProfilerRendererFeature.settings.TileHeight = TileHeight;
                         NeedUpdateUITileGrid.boolValue = true;
                         needUpdateColumnData = true;
                     }
@@ -515,19 +509,21 @@ namespace VertexProfilerTool
                 EditorGUI.BeginChangeCheck();
                 EditorGUILayout.BeginHorizontal();
                 // EditorGUILayout.ObjectField(HeatMapTex, typeof(Texture2D), new GUIContent("热力图Ramp纹理"));
-                EditorGUILayout.PropertyField(ECullMode, new GUIContent("热力图顶点剔除"), GUILayout.Width(300));
+                ECullMode = (CullMode)EditorGUILayout.EnumPopup(new GUIContent("热力图顶点剔除"), ECullMode, GUILayout.Width(300));
                 EditorGUILayout.EndHorizontal();
-                float minValue = HeatMapRampMin.floatValue;
-                float maxValue = HeatMapRampMax.floatValue;
+                float minValue = HeatMapRampMin;
+                float maxValue = HeatMapRampMax;
                 EditorGUILayout.MinMaxSlider(new GUIContent("查看的热力图阈值范围"), ref minValue, ref maxValue, 0.0f, 1.0f);
                 EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.IntSlider(HeatMapRange, 1, 8, new GUIContent("热力图采样范围（过大会影响性能）"));
-                EditorGUILayout.IntSlider(HeatMapStep, 1, 5, new GUIContent("热力图采样半径"));
+                HeatMapRange = EditorGUILayout.IntSlider(new GUIContent("热力图采样范围（过大会影响性能）"), HeatMapRange, 1, 8);
+                HeatMapStep = EditorGUILayout.IntSlider(new GUIContent("热力图采样半径"), HeatMapStep, 1, 5);
                 EditorGUILayout.EndHorizontal();
                 if (EditorGUI.EndChangeCheck())
                 {
-                    HeatMapRampMin.floatValue = minValue;
-                    HeatMapRampMax.floatValue = maxValue;
+	                VertexProfilerRendererFeature.settings.HeatMapRampMin = minValue;
+	                VertexProfilerRendererFeature.settings.HeatMapRampMax = maxValue;
+	                VertexProfilerRendererFeature.settings.HeatMapRange = HeatMapRange;
+	                VertexProfilerRendererFeature.settings.HeatMapStep = HeatMapStep;
                     serializedObject.ApplyModifiedProperties();
                     serializedObject.Update();
                 }
@@ -731,6 +727,8 @@ namespace VertexProfilerTool
         private void UpdateColumnComponent()
         {
             if (vertexProfilerURP == null || serializedObject == null || EDisplayType == null) return;
+            vertexProfilerURP.TileWidth = VertexProfilerRendererFeature.settings.TileWidth;
+            vertexProfilerURP.TileHeight = VertexProfilerRendererFeature.settings.TileHeight;
             // Check if it already exists (deserialized from window layout file or scriptable object)
             if (m_TreeViewState == null)
                 m_TreeViewState = new TreeViewState();
@@ -1117,38 +1115,21 @@ namespace VertexProfilerTool
 
         private void StartProfiler()
         {
-	        UniversalRenderPipelineAsset urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
-	        UniversalRendererData rendererData = VertexProfilerUtil.GetRendererDataByIndex(urpAsset, 0);
-	        VertexProfilerUtil.ModifyRendererFeature<VertexProfilerRendererFeature>(rendererData, feature =>
-	        {
-		        feature.EnableProfiler = true;
-	        });
-	        vertexProfilerURP.CheckShowUIGrid(EDisplayType);
+	        VertexProfilerRendererFeature.EnableProfiler = true;
+	        vertexProfilerURP.CheckShowUIGrid(EDisplayType, HideGoTUITile);
         }
         private void StopProfiler()
         {
-	        UniversalRenderPipelineAsset urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
-	        UniversalRendererData rendererData = VertexProfilerUtil.GetRendererDataByIndex(urpAsset, 0);
-	        VertexProfilerUtil.ModifyRendererFeature<VertexProfilerRendererFeature>(rendererData, feature =>
-	        {
-		        feature.EnableProfiler = false;
-	        });
-	        vertexProfilerURP.CheckShowUIGrid(EDisplayType);
+	        VertexProfilerRendererFeature.EnableProfiler = false;
+	        vertexProfilerURP.CheckShowUIGrid(EDisplayType, HideGoTUITile);
         }
 
         private void CheckProfilerMode()
         {
 	        vertexProfilerURP.EDisplayType = EDisplayType;
-	        vertexProfilerURP.CheckShowUIGrid(EDisplayType);
-	        UniversalRenderPipelineAsset urpAsset = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
-	        UniversalRendererData rendererData = VertexProfilerUtil.GetRendererDataByIndex(urpAsset, 0);
-	        VertexProfilerUtil.ModifyRendererFeature<VertexProfilerRendererFeature>(rendererData, feature =>
-	        {
-		        feature.displayType = EDisplayType;
-	        });
+	        vertexProfilerURP.CheckShowUIGrid(EDisplayType, HideGoTUITile);
+	        VertexProfilerRendererFeature.displayType = EDisplayType;
         }
-        
-        
 
         private void UseDefaultColorRangeSetting()
         {

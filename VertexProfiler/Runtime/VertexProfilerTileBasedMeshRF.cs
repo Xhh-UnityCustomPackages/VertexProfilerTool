@@ -182,8 +182,8 @@ namespace VertexProfilerTool
             Matrix4x4 m_p = GL.GetGPUProjectionMatrix(camera.projectionMatrix, SystemInfo.graphicsUVStartsAtTop);
             Matrix4x4 m_vp = m_p * m_v;
             
-            vp.TileNumX = Mathf.CeilToInt(camera.pixelWidth / (float)vp.TileWidth);
-            vp.TileNumY = Mathf.CeilToInt(camera.pixelHeight / (float)vp.TileHeight);
+            vp.TileNumX = Mathf.CeilToInt(camera.pixelWidth / (float)m_Settings.TileWidth);
+            vp.TileNumY = Mathf.CeilToInt(camera.pixelHeight / (float)m_Settings.TileHeight);
             int tileCount = vp.TileNumX * vp.TileNumY;
 
             m_VertexCounterBuffer = new ComputeBuffer(m_RendererNum * tileCount, Marshal.SizeOf(typeof(uint)));
@@ -216,19 +216,19 @@ namespace VertexProfilerTool
             ReAllocTileProfilerRT(GraphicsFormat.None, GraphicsFormat.D24_UNorm, 
                 FilterMode.Point, ref m_RendererIdAndVertexDepthCountRT, "_RendererIdAndVertexDepthCountRT", false);
             
-            cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileWidth, vp.TileWidth);
+            cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileWidth, m_Settings.TileWidth);
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileCount, tileCount);
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileNumX, vp.TileNumX);
-            cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileParams2, new Vector4(1.0f / vp.TileWidth, 1.0f / vp.TileHeight, 1.0f / vp.TileNumX, 1.0f / vp.TileNumY));
+            cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileParams2, new Vector4(1.0f / m_Settings.TileWidth, 1.0f / m_Settings.TileHeight, 1.0f / vp.TileNumX, 1.0f / vp.TileNumY));
             cmd.SetComputeMatrixParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_MATRIX_VP, m_vp);
             cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._ScreenParams, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / camera.pixelWidth, 1.0f / camera.pixelHeight));
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_UV_STARTS_AT_TOP, SystemInfo.graphicsUVStartsAtTop ? 1 : 0);
             cmd.SetComputeBufferParam(CalculateVertexByTilesCS, CalculateVertexKernel, VertexProfilerUtil._VertexCounterBuffer, m_VertexCounterBuffer);
             
-            cmd.SetGlobalInt(VertexProfilerUtil._TileWidth, vp.TileWidth);
+            cmd.SetGlobalInt(VertexProfilerUtil._TileWidth, m_Settings.TileWidth);
             cmd.SetGlobalInt(VertexProfilerUtil._TileNumX, vp.TileNumX);
             cmd.SetGlobalInt(VertexProfilerUtil._TileCount, tileCount);
-            cmd.SetGlobalVector(VertexProfilerUtil._TileParams2, new Vector4(1.0f / vp.TileWidth, 1.0f / vp.TileHeight, 1.0f / vp.TileNumX, 1.0f / vp.TileNumY));
+            cmd.SetGlobalVector(VertexProfilerUtil._TileParams2, new Vector4(1.0f / m_Settings.TileWidth, 1.0f / m_Settings.TileHeight, 1.0f / vp.TileNumX, 1.0f / vp.TileNumY));
 
             cmd.SetRandomWriteTarget(4, m_PixelCounterBuffer);
             cmd.SetGlobalBuffer(VertexProfilerUtil._VertexCounterBuffer, m_VertexCounterBuffer);

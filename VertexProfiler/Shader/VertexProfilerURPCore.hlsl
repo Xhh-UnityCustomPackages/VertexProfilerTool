@@ -152,9 +152,9 @@ struct VP_Varyings
 VP_Varyings vert (VP_Arrtibutes v)
 {
     VP_Varyings o;
-    o.vertex = TransformObjectToHClip(v.vertex);
+    o.vertex = TransformObjectToHClip(v.vertex.xyz);
     o.uv = v.uv;
-    o.posWS = TransformObjectToWorld(v.vertex);
+    o.posWS = TransformObjectToWorld(v.vertex.xyz);
     return o;
 }
 half4 frag (VP_Varyings i) : SV_Target

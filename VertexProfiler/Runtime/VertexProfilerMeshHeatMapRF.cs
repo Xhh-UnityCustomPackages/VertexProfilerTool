@@ -193,8 +193,8 @@ namespace VertexProfilerTool
             Matrix4x4 m_vp = m_p * m_v;
             
             // 外部处理
-            vp.TileNumX = Mathf.CeilToInt(camera.pixelWidth / (float)vp.TileWidth);
-            vp.TileNumY = Mathf.CeilToInt(camera.pixelHeight / (float)vp.TileHeight);
+            vp.TileNumX = Mathf.CeilToInt(camera.pixelWidth / (float)m_Settings.TileWidth);
+            vp.TileNumY = Mathf.CeilToInt(camera.pixelHeight / (float)m_Settings.TileHeight);
             
             // 在这里使用JobSystem调度视锥剔除计算
             var frustumPlanes = GeometryUtility.CalculateFrustumPlanes(camera);
@@ -232,12 +232,12 @@ namespace VertexProfilerTool
             cmd.SetComputeTextureParam(CalculateVertexByTilesCS, CalculateVertexKernel2, VertexProfilerUtil._TileProfilerRTUint2, m_TileProfilerUInt2RT);
 
             cmd.SetComputeVectorParam(GenerateProfilerRTCS, VertexProfilerUtil._ScreenParams, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / camera.pixelWidth, 1.0f / camera.pixelHeight));
-            cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._HeatMapRange, vp.HeatMapRange);
-            cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._HeatMapStep, vp.HeatMapStep);
-            cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._HeatMapOffsetCount, vp.HeatMapOffsetCount);
+            cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._HeatMapRange, m_Settings.HeatMapRange);
+            cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._HeatMapStep, m_Settings.HeatMapStep);
+            cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._HeatMapOffsetCount, m_Settings.HeatMapOffsetCount);
             cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._ColorRangeSettingCount, m_ColorRangeSettings.Length);
             cmd.SetComputeBufferParam(GenerateProfilerRTCS, GenerateProfilerKernel, VertexProfilerUtil._ColorRangeSetting, m_ColorRangeSettingBuffer);
-            cmd.SetComputeVectorParam(GenerateProfilerRTCS, VertexProfilerUtil._HeatMapRampRange, new Vector2(vp.HeatMapRampMin, vp.HeatMapRampMax));
+            cmd.SetComputeVectorParam(GenerateProfilerRTCS, VertexProfilerUtil._HeatMapRampRange, new Vector2(m_Settings.HeatMapRampMin, m_Settings.HeatMapRampMax));
             cmd.SetComputeTextureParam(GenerateProfilerRTCS, GenerateProfilerKernel, VertexProfilerUtil._TileProfilerRTUint2, m_TileProfilerUInt2RT);
             cmd.SetComputeTextureParam(GenerateProfilerRTCS, GenerateProfilerKernel, VertexProfilerUtil._TileProfilerRT, m_TileProfilerRT);
 

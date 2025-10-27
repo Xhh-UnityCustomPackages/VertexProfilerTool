@@ -16,11 +16,36 @@ namespace VertexProfilerTool
 		{
 			[SerializeField] public VertexProfilerRendererFeatureData m_FeatureData;
 			public DisplayType displayType = DisplayType.None;
+			
+			[Range(32, 128)]
+			public int TileWidth = 100;
+			[Range(32, 128)]
+			public int TileHeight = 100;
+			
+			// 热力图参数
+			[Range(1, 8)]
+			public int HeatMapRange = 2;
+			[Range(1, 5)]
+			public int HeatMapStep = 1;
+			public int HeatMapOffsetCount
+			{
+				get
+				{
+					return HeatMapRange * HeatMapRange + (HeatMapRange + 1) * (HeatMapRange + 1);
+				}
+			}
+			
+			[Range(0.0f, 0.99f)]
+			public float HeatMapRampMin = 0.0f;
+			[Range(0.01f, 1.0f)]
+			public float HeatMapRampMax = 1.0f;
 		}
 		
 		[SerializeField] 
 		Settings m_Settings = new();
 
+		public Settings settings => m_Settings;
+		
 		public DisplayType displayType
 		{
 			get { return m_Settings.displayType; }

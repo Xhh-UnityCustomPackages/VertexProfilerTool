@@ -16,26 +16,6 @@ namespace VertexProfilerTool
         public int TileWidth = 100;
         [Range(32, 128)]
         public int TileHeight = 100;
-
-        // 热力图参数
-        [Range(1, 8)]
-        public int HeatMapRange = 2;
-        [Range(1, 5)]
-        public int HeatMapStep = 1;
-        public int HeatMapOffsetCount
-        {
-            get
-            {
-                return HeatMapRange * HeatMapRange + (HeatMapRange + 1) * (HeatMapRange + 1);
-            }
-        }
-
-        // public Gradient HeatMapGradient;
-        [Range(0.0f, 0.99f)]
-        public float HeatMapRampMin = 0.0f;
-        [Range(0.01f, 1.0f)]
-        public float HeatMapRampMax = 1.0f;
-        
  
         // public bool EnableProfiler = true;
         public ProfilerType EProfilerType = ProfilerType.Detail;
@@ -56,8 +36,8 @@ namespace VertexProfilerTool
         [HideInInspector]public bool NeedLogDataToProfilerWindow = false;
         [HideInInspector]public int LastLogFrameCount = 0;
 
-        public bool HideGoTUITile = false;
-        public bool HideTileNum = false;
+        // public bool HideGoTUITile = false;
+        // public bool HideTileNum = false;
         internal List<UITile> GoUITileList = new List<UITile>();
         internal Canvas tileCanvas;
         
@@ -176,27 +156,27 @@ namespace VertexProfilerTool
         }
         
         #region UI
-        public void CheckShowUIGrid(DisplayType displayType)
+        public void CheckShowUIGrid(DisplayType displayType, bool hideGoTUITile)
         {
             // 检查是否需要显示uiTile
             bool showCanvas = displayType != DisplayType.OnlyMesh
                               && displayType != DisplayType.MeshHeatMap 
                               && displayType != DisplayType.Overdraw 
-                              && !HideGoTUITile;
+                              && !hideGoTUITile;
             if (tileCanvas != null && tileCanvas.gameObject.activeSelf != showCanvas)
             {
                 tileCanvas.gameObject.SetActive(showCanvas);
             }
         }
 
-        public void SetTileNumShow()
+        public void SetTileNumShow(bool hideTileNum)
         {
             for (int i = 0; i < GoUITileList.Count; i++)
             {
                 var uiTile = GoUITileList[i];
                 if (uiTile)
                 {
-                    uiTile.SetTileNumActive(!HideTileNum);
+                    uiTile.SetTileNumActive(!hideTileNum);
                 }
             }
         }
@@ -228,7 +208,7 @@ namespace VertexProfilerTool
                     uitile.SetData(TileWidth, TileHeight, TileNumX, i);
                 }
                 uitile.SetActive(i < needNum);
-                uitile.SetTileNumActive(!HideTileNum);
+                uitile.SetTileNumActive(false);
             }
 
             NeedUpdateUITileGrid = false;

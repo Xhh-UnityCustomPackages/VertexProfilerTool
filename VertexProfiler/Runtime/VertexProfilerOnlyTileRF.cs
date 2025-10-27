@@ -99,7 +99,7 @@ namespace VertexProfilerTool
                 m_ColorRangeSettings = new ColorRangeSetting[DensityList.Count];
                 for (int i = 0; i < DensityList.Count; i++)
                 {
-                    float threshold = DensityList[i] * vp.TileHeight * vp.TileWidth * 0.0001f;
+                    float threshold = DensityList[i] * m_Settings.TileHeight * m_Settings.TileWidth * 0.0001f;
                     Color color = VertexProfilerUtil.GetProfilerColor(i, EProfilerType);
                     ColorRangeSetting setting = new ColorRangeSetting();
                     setting.threshold = threshold;
@@ -159,8 +159,8 @@ namespace VertexProfilerTool
             Matrix4x4 m_vp = m_p * m_v;
             
             // 外部处理
-            vp.TileNumX = Mathf.CeilToInt(camera.pixelWidth / (float)vp.TileWidth);
-            vp.TileNumY = Mathf.CeilToInt(camera.pixelHeight / (float)vp.TileHeight);
+            vp.TileNumX = Mathf.CeilToInt(camera.pixelWidth / (float)m_Settings.TileWidth);
+            vp.TileNumY = Mathf.CeilToInt(camera.pixelHeight / (float)m_Settings.TileHeight);
 
             m_TileVerticesCountBuffer = new ComputeBuffer(vp.TileNumX * vp.TileNumY, Marshal.SizeOf(typeof(uint)));
             m_TileVerticesCountBuffer.SetData(new uint[vp.TileNumX * vp.TileNumY]);
@@ -184,15 +184,15 @@ namespace VertexProfilerTool
 
             ReAllocTileProfilerRT(GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, FilterMode.Point, ref m_TileProfilerRT, "TileProfiler");
             
-            cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileWidth, vp.TileWidth);
+            cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileWidth, m_Settings.TileWidth);
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileNumX, vp.TileNumX);
-            cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileParams2, new Vector4(1.0f / vp.TileWidth, 1.0f / vp.TileHeight, 1.0f / vp.TileNumX, 1.0f / vp.TileNumY));
+            cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileParams2, new Vector4(1.0f / m_Settings.TileWidth, 1.0f / vp.TileHeight, 1.0f / vp.TileNumX, 1.0f / vp.TileNumY));
             cmd.SetComputeMatrixParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_MATRIX_VP, m_vp);
             cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._ScreenParams, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / camera.pixelWidth, 1.0f / camera.pixelHeight));
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_UV_STARTS_AT_TOP, SystemInfo.graphicsUVStartsAtTop ? 1 : 0);
             cmd.SetComputeBufferParam(CalculateVertexByTilesCS, CalculateVertexKernel, VertexProfilerUtil._TileVerticesCount, m_TileVerticesCountBuffer);
 
-            cmd.SetComputeVectorParam(GenerateProfilerRTCS, VertexProfilerUtil._TileParams2, new Vector4(1.0f / vp.TileWidth, 1.0f / vp.TileHeight, 1.0f / vp.TileNumX, 1.0f / vp.TileNumY));
+            cmd.SetComputeVectorParam(GenerateProfilerRTCS, VertexProfilerUtil._TileParams2, new Vector4(1.0f / m_Settings.TileWidth, 1.0f / m_Settings.TileHeight, 1.0f / vp.TileNumX, 1.0f / vp.TileNumY));
             cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._TileNumX, vp.TileNumX);
             cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._ColorRangeSettingCount, m_ColorRangeSettings.Length);
             cmd.SetComputeBufferParam(GenerateProfilerRTCS, 0, VertexProfilerUtil._TileVerticesCount, m_TileVerticesCountBuffer);
@@ -318,7 +318,7 @@ namespace VertexProfilerTool
                 {
                     uint vertexCount = tileVerticesCountData[i];
                     if(vertexCount == 0) continue;
-                    float density = (float)vertexCount / (float)(vp.TileHeight * vp.TileWidth) * 10000f;
+                    float density = (float)vertexCount / (float)(m_Settings.TileHeight * m_Settings.TileWidth) * 10000f;
                     Color profilerColor = VertexProfilerModeBaseRenderPass.GetProfilerContentColor(density, out int thresholdLevel);
                     ProfilerDataContents content = new ProfilerDataContents(
                         i, 
