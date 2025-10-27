@@ -33,7 +33,6 @@ namespace VertexProfilerTool
             if (vp != null)
             {
                 vp.ProfilerMode = this;
-                EProfilerType = vp.EProfilerType;
                 CheckColorRangeData(true);
                 CalculateVertexByTilesCS = m_Settings.m_FeatureData.shaders.calculateVertexByTilesCS;;
                 GenerateProfilerRTCS = m_Settings.m_FeatureData.shaders.generateProfilerRTCS;
@@ -65,34 +64,25 @@ namespace VertexProfilerTool
         public override void UseDefaultColorRangeSetting()
         {
             // 简单模式默认使用硬编码的阈值，不做处理
-            if (EProfilerType == ProfilerType.Simple) return;
             
-            VertexProfilerUtil.OnlyTileDensitySetting = new List<int>(VertexProfilerUtil.DefaultOnlyTileDensitySetting);
+            m_Settings.OnlyTileDensitySetting = new List<int>(VertexProfilerUtil.DefaultOnlyTileDensitySetting);
             DensityList.Clear();
             NeedSyncColorRangeSetting = true;
             CheckColorRangeData();
         }
         public override void CheckColorRangeData(bool forceReload = false)
         {
-            if (DensityList.Count <= 0 || forceReload) 
-            {
-                DensityList.Clear();
-                if (EProfilerType == ProfilerType.Simple)
-                {
-                    foreach (int v in VertexProfilerUtil.SimpleModeOnlyTileDensitySetting)
-                    {
-                        DensityList.Add(v);
-                    }
-                }
-                else if (EProfilerType == ProfilerType.Detail)
-                {
-                    foreach (int v in VertexProfilerUtil.OnlyTileDensitySetting)
-                    {
-                        DensityList.Add(v);
-                    }
-                }
-                NeedSyncColorRangeSetting = true;
-            }
+	        if (DensityList.Count <= 0 || forceReload)
+	        {
+		        DensityList.Clear();
+
+		        foreach (int v in m_Settings.OnlyTileDensitySetting)
+		        {
+			        DensityList.Add(v);
+		        }
+
+		        NeedSyncColorRangeSetting = true;
+	        }
             // 检查是否要同步设置
             if (NeedSyncColorRangeSetting)
             {
@@ -100,7 +90,7 @@ namespace VertexProfilerTool
                 for (int i = 0; i < DensityList.Count; i++)
                 {
                     float threshold = DensityList[i] * m_Settings.TileHeight * m_Settings.TileWidth * 0.0001f;
-                    Color color = VertexProfilerUtil.GetProfilerColor(i, EProfilerType);
+                    Color color = VertexProfilerUtil.GetProfilerColor(i);
                     ColorRangeSetting setting = new ColorRangeSetting();
                     setting.threshold = threshold;
                     setting.color = color;
@@ -182,11 +172,13 @@ namespace VertexProfilerTool
             m_RendererBoundsNA.Dispose();
             VisibleFlagNA.Dispose();
 
-            ReAllocTileProfilerRT(GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, FilterMode.Point, ref m_TileProfilerRT, "TileProfiler");
+            int width = camera.pixelWidth;
+            int height = camera.pixelHeight;
+            ReAllocTileProfilerRT(width, height, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, FilterMode.Point, ref m_TileProfilerRT, "TileProfiler");
             
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileWidth, m_Settings.TileWidth);
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileNumX, vp.TileNumX);
-            cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileParams2, new Vector4(1.0f / m_Settings.TileWidth, 1.0f / vp.TileHeight, 1.0f / vp.TileNumX, 1.0f / vp.TileNumY));
+            cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._TileParams2, new Vector4(1.0f / m_Settings.TileWidth, 1.0f / m_Settings.TileHeight, 1.0f / vp.TileNumX, 1.0f / vp.TileNumY));
             cmd.SetComputeMatrixParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_MATRIX_VP, m_vp);
             cmd.SetComputeVectorParam(CalculateVertexByTilesCS, VertexProfilerUtil._ScreenParams, new Vector4(camera.pixelWidth, camera.pixelHeight, 1.0f / camera.pixelWidth, 1.0f / camera.pixelHeight));
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_UV_STARTS_AT_TOP, SystemInfo.graphicsUVStartsAtTop ? 1 : 0);
@@ -275,7 +267,7 @@ namespace VertexProfilerTool
                 vp.LogMode = null;
             }
         }
-        public override void DispatchScreenShotAndReadBack(CommandBuffer cmd, ref ScriptableRenderContext context)
+        public override void DispatchScreenShotAndReadBack(CommandBuffer cmd, ref ScriptableRenderContext context, ref RenderingData renderingData)
         {
             if (vp == null || vp.LogMode != this 
                            || VertexProfilerModeBaseRenderPass.m_TileVerticesCountBuffer == null 
@@ -285,8 +277,9 @@ namespace VertexProfilerTool
             tileVerticesCountDataReady = false;
             tileVerticesCountData = null;
 
+            var camera = renderingData.cameraData.camera;
             // 截图
-            RenderTextureDescriptor desc = new RenderTextureDescriptor(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, 0);
+            RenderTextureDescriptor desc = new RenderTextureDescriptor(camera.pixelWidth, camera.pixelHeight, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, 0);
             desc.enableRandomWrite = true;
             VertexProfilerUtil.ReAllocRTIfNeeded(ref m_ScreenshotRT, desc, FilterMode.Point, TextureWrapMode.Clamp, false, name: "ScreenShot");
             cmd.Blit(colorAttachment, m_ScreenshotRT, m_Settings.m_FeatureData.materials.GammaCorrectionEffectMat);

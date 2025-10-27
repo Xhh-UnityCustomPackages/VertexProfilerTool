@@ -40,7 +40,7 @@ namespace VertexProfilerTool
             if (vp != null)
             {
                 vp.ProfilerMode = this;
-                EProfilerType = vp.EProfilerType;
+               
                 CheckColorRangeData(true);
                 MeshPixelCalMat = m_Settings.m_FeatureData.materials.MeshPixelCalMat;
             };
@@ -68,34 +68,25 @@ namespace VertexProfilerTool
         public override void UseDefaultColorRangeSetting()
         {
             // 简单模式默认使用硬编码的阈值，不做处理
-            if (EProfilerType == ProfilerType.Simple) return;
-            
-            VertexProfilerUtil.OnlyMeshDensitySetting = new List<int>(VertexProfilerUtil.DefaultOnlyMeshDensitySetting);
+            m_Settings.OnlyMeshDensitySetting = new List<int>(VertexProfilerUtil.DefaultOnlyMeshDensitySetting);
             DensityList.Clear();
             NeedSyncColorRangeSetting = true;
             CheckColorRangeData();
         }
+
         public override void CheckColorRangeData(bool forceReload = false)
         {
-            if (DensityList.Count <= 0 || forceReload) 
-            {
-                DensityList.Clear();
-                if (EProfilerType == ProfilerType.Simple)
-                {
-                    foreach (int v in VertexProfilerUtil.SimpleModeOnlyMeshDensitySetting)
-                    {
-                        DensityList.Add(v);
-                    }
-                }
-                else if (EProfilerType == ProfilerType.Detail)
-                {
-                    foreach (int v in VertexProfilerUtil.OnlyMeshDensitySetting)
-                    {
-                        DensityList.Add(v);
-                    }
-                }
-                NeedSyncColorRangeSetting = true;
-            }
+	        if (DensityList.Count <= 0 || forceReload)
+	        {
+		        DensityList.Clear();
+
+		        foreach (int v in m_Settings.OnlyMeshDensitySetting)
+		        {
+			        DensityList.Add(v);
+		        }
+
+		        NeedSyncColorRangeSetting = true;
+	        }
             // 检查是否要同步设置
             if (NeedSyncColorRangeSetting)
             {
@@ -103,7 +94,7 @@ namespace VertexProfilerTool
                 for (int i = 0; i < DensityList.Count; i++)
                 {
                     float threshold = DensityList[i] * 0.0001f;
-                    Color color = VertexProfilerUtil.GetProfilerColor(i, EProfilerType);
+                    Color color = VertexProfilerUtil.GetProfilerColor(i);
                     ColorRangeSetting setting = new ColorRangeSetting();
                     setting.threshold = threshold;
                     setting.color = color;
@@ -186,10 +177,12 @@ namespace VertexProfilerTool
             frustumPlanesNA.Dispose();
             m_RendererBoundsNA.Dispose();
             VisibleFlagNA.Dispose();
-            
-            ReAllocTileProfilerRT(GraphicsFormat.R32G32_SFloat, 
+
+            int width = camera.pixelWidth;
+            int height = camera.pixelHeight;
+            ReAllocTileProfilerRT(width, height, GraphicsFormat.R32G32_SFloat, 
                 GraphicsFormat.None, FilterMode.Point, ref m_RendererIdAndVertexCountRT, "_RendererIdAndVertexCountRT");
-            ReAllocTileProfilerRT(GraphicsFormat.None, GraphicsFormat.D24_UNorm, 
+            ReAllocTileProfilerRT(width, height, GraphicsFormat.None, GraphicsFormat.D24_UNorm, 
                 FilterMode.Point, ref m_RendererIdAndVertexDepthCountRT, "_RendererIdAndVertexDepthCountRT", false);
             
             m_PixelCounterBuffer = new ComputeBuffer(m_RendererNum, Marshal.SizeOf(typeof(uint)));
@@ -275,7 +268,7 @@ namespace VertexProfilerTool
                 vp.LogMode = null;
             }
         }
-        public override void DispatchScreenShotAndReadBack(CommandBuffer cmd, ref ScriptableRenderContext context)
+        public override void DispatchScreenShotAndReadBack(CommandBuffer cmd, ref ScriptableRenderContext context, ref RenderingData renderingData)
         {
 	        if (vp == null) return;
 	        if (vp.LogMode != this) return;
@@ -286,8 +279,9 @@ namespace VertexProfilerTool
             pixelCountDataReady = false;
             pixelCountData = null;
             
+            var camera = renderingData.cameraData.camera;
             // 截图
-            RenderTextureDescriptor desc = new RenderTextureDescriptor(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, 0);
+            RenderTextureDescriptor desc = new RenderTextureDescriptor(camera.pixelWidth, camera.pixelHeight, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, 0);
             desc.enableRandomWrite = true;
             VertexProfilerUtil.ReAllocRTIfNeeded(ref m_ScreenshotRT, desc, FilterMode.Point, TextureWrapMode.Clamp, false, name: "ScreenShot");
            

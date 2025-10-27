@@ -21,11 +21,6 @@ namespace VertexProfilerTool
         
         public VertexProfilerModeBaseRenderPass ProfilerMode;
         public VertexProfilerLogBaseRenderPass LogMode;
-    
-        
-        [NonReorderable]
-        public List<int> DensityList = new List<int>();
-        public bool NeedSyncColorRangeSetting = true;
         
         private void Awake()
         {
@@ -37,16 +32,6 @@ namespace VertexProfilerTool
             NeedUpdateUITileGrid = true;
             InitCamera();
         }
-
-        #region public function
-        
-        public void ChangeProfilerType(int index)
-        {
-            EProfilerType = (ProfilerType)index;
-            ProfilerMode?.ChangeProfilerType(EProfilerType);
-        }
-        
-        #endregion
         
         #region Log out
         public void StartCoroutineForProfiler(IEnumerator routine)

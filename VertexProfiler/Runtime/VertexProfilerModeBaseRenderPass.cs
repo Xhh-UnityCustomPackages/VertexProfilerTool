@@ -11,7 +11,6 @@ namespace VertexProfilerTool
     public abstract class VertexProfilerModeBaseRenderPass : ScriptableRenderPass
     {
         public static VertexProfilerURP vp;
-        public ProfilerType EProfilerType = ProfilerType.Detail;
         public CullMode ECullMode = CullMode.Back;
         public List<int> DensityList = new List<int>();
         public bool NeedSyncColorRangeSetting = true;
@@ -30,10 +29,6 @@ namespace VertexProfilerTool
         internal List<Matrix4x4> m_RendererLocalToWorldMatrix = new List<Matrix4x4>();
     
         protected VertexProfilerRendererFeature.Settings m_Settings;
-        public VertexProfilerModeBaseRenderPass()
-        {
-	        
-        }
 
         public virtual void Setup(VertexProfilerRendererFeature.Settings settings)
         {
@@ -119,15 +114,6 @@ namespace VertexProfilerTool
             
         }
         
-        public void ChangeProfilerType(ProfilerType profilerType)
-        {
-            if (EProfilerType != profilerType)
-            {
-                EProfilerType = profilerType;
-                CheckColorRangeData(true);
-            }
-        }
-        
         public virtual void ReleaseAllComputeBuffer()
         {
             ReleaseComputeBuffer(ref m_ColorRangeSettingBuffer);
@@ -155,9 +141,9 @@ namespace VertexProfilerTool
             }
         }
         
-        internal void ReAllocTileProfilerRT(GraphicsFormat colorFormat, GraphicsFormat depthFormat, FilterMode filterMode, ref RTHandle handle, string handleName = "", bool randomWrite = true)
+        internal void ReAllocTileProfilerRT(int width, int height, GraphicsFormat colorFormat, GraphicsFormat depthFormat, FilterMode filterMode, ref RTHandle handle, string handleName = "", bool randomWrite = true)
         {
-            RenderTextureDescriptor desc = new RenderTextureDescriptor(vp.MainCamera.pixelWidth, vp.MainCamera.pixelHeight, colorFormat, depthFormat, 0);
+            RenderTextureDescriptor desc = new RenderTextureDescriptor(width, height, colorFormat, depthFormat, 0);
             desc.enableRandomWrite = randomWrite;
             VertexProfilerUtil.ReAllocRTIfNeeded(ref handle, desc, filterMode, TextureWrapMode.Clamp, false, name: handleName);
         }
@@ -195,9 +181,12 @@ namespace VertexProfilerTool
         private VertexProfilerRendererFeature.Settings m_Settings;
         
         string[] m_ShaderKeywords = new string[1];
+        private Material m_ProfileMaterial;
         public void Setup(VertexProfilerRendererFeature.Settings settings)
         {
 	        m_Settings = settings;
+	        if (m_ProfileMaterial == null)
+		        m_ProfileMaterial = Material.Instantiate(m_Settings.m_FeatureData.materials.ApplyProfilerDataByPostEffectMat);
         }
         
         public static string GetDebugKeyword(DisplayType debugMode)
@@ -229,10 +218,9 @@ namespace VertexProfilerTool
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();
             
-            var material = m_Settings.m_FeatureData.materials.ApplyProfilerDataByPostEffectMat;
             m_ShaderKeywords[0] = GetDebugKeyword(m_Settings.displayType);
-            material.shaderKeywords = m_ShaderKeywords;
-            Blit(cmd, ref renderingData, material);
+            m_ProfileMaterial.shaderKeywords = m_ShaderKeywords;
+            Blit(cmd, ref renderingData, m_ProfileMaterial);
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
@@ -240,6 +228,11 @@ namespace VertexProfilerTool
         public override void OnCameraCleanup(CommandBuffer cmd)
         {
 
+        }
+
+        public void OnDisable()
+        {
+	        CoreUtils.Destroy(m_ProfileMaterial);
         }
     }
 
@@ -273,13 +266,13 @@ namespace VertexProfilerTool
             // 处理log操作
             if (vp.NeedLogOutProfilerData || vp.NeedLogDataToProfilerWindow)
             {
-                DispatchScreenShotAndReadBack(cmd, ref context);
+                DispatchScreenShotAndReadBack(cmd, ref context, ref renderingData);
             }
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
 
-        public virtual void DispatchScreenShotAndReadBack(CommandBuffer cmd, ref ScriptableRenderContext context)
+        public virtual void DispatchScreenShotAndReadBack(CommandBuffer cmd, ref ScriptableRenderContext context, ref RenderingData renderingData)
         {
             
         }

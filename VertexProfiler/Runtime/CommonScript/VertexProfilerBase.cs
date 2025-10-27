@@ -11,16 +11,11 @@ namespace VertexProfilerTool
     public class VertexProfilerBase : MonoBehaviour
     {
         public Camera MainCamera;
-        public bool SyncSceneCameraToMainCamera = false;
         [Range(32, 128)]
         public int TileWidth = 100;
         [Range(32, 128)]
         public int TileHeight = 100;
- 
-        // public bool EnableProfiler = true;
-        public ProfilerType EProfilerType = ProfilerType.Detail;
-        // public UpdateType EUpdateType = UpdateType.EveryFrame;
-        public DisplayType EDisplayType = DisplayType.OnlyTile;
+		
         public bool NeedRecollectRenderers = true;
         
         
@@ -42,16 +37,6 @@ namespace VertexProfilerTool
         internal Canvas tileCanvas;
         
         #if UNITY_EDITOR
-        internal void OnEnable()
-        {
-            EditorApplication.update += EditorSyncCamera;
-        }
-
-        internal void OnDisable()
-        {
-            EditorApplication.update -= EditorSyncCamera;
-        }
-        
         /// <summary>
         /// 创建Canvas和EventSystem
         /// </summary>
@@ -103,40 +88,9 @@ namespace VertexProfilerTool
             }
             #endif
         }
-        /// <summary>
-        /// 将Scene视图相机的位置和旋转同步到主摄像机(编辑器模式)
-        /// </summary>
-        internal void EditorSyncCamera()
-        {
-            // 将Scene视图相机的位置和旋转同步到主摄像机
-            if (SyncSceneCameraToMainCamera && !Application.isPlaying)
-            {
-                var sceneView = SceneView.lastActiveSceneView;
-                if (sceneView != null && MainCamera != null)
-                {
-                    MainCamera.transform.rotation = sceneView.rotation;
-                    MainCamera.transform.position = sceneView.pivot - MainCamera.transform.forward * sceneView.cameraDistance;
-                }
-            }
-        }
         #endif
         
-        /// <summary>
-        /// 将Scene视图相机的位置和旋转同步到主摄像机
-        /// </summary>
-        internal void SyncCamera()
-        {
-            // 将Scene视图相机的位置和旋转同步到主摄像机
-            if (SyncSceneCameraToMainCamera && Application.isPlaying)
-            {
-                var sceneView = SceneView.lastActiveSceneView;
-                if (sceneView != null && MainCamera != null)
-                {
-                    MainCamera.transform.rotation = sceneView.rotation;
-                    MainCamera.transform.position = sceneView.pivot - MainCamera.transform.forward * sceneView.cameraDistance;
-                }
-            }
-        }
+     
         internal void InitCamera()
         {
             if (MainCamera == null)
@@ -146,8 +100,6 @@ namespace VertexProfilerTool
         }
         internal void Update()
         {
-            // 将Scene视图相机的位置和旋转同步到主摄像机
-            SyncCamera();
             // 同步UI网格
             if (NeedUpdateUITileGrid)
             {
@@ -182,7 +134,7 @@ namespace VertexProfilerTool
         }
         internal void UpdateGoTileGrid()
         {
-            if (EDisplayType == DisplayType.OnlyMesh) return;
+            // if (EDisplayType == DisplayType.OnlyMesh) return;
             
             TileNumX = Mathf.CeilToInt((float)MainCamera.pixelWidth / (float)TileWidth);
             TileNumY = Mathf.CeilToInt((float)MainCamera.pixelHeight / (float)TileHeight);

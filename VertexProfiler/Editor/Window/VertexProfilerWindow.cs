@@ -37,14 +37,15 @@ namespace VertexProfilerTool
 
         private SerializedObject serializedObject;
         
-        private SerializedProperty SyncSceneCameraToMainCamera;
+        private Camera MainCamera;
+        private bool SyncSceneCameraToMainCamera;
         private int TileWidth;
         private int TileHeight;
         private bool EnableProfiler = true;
-        private SerializedProperty EProfilerType;
+        // private ProfilerType EProfilerType = ProfilerType.Detail;
         private UpdateType EUpdateType = UpdateType.Once;
         private DisplayType EDisplayType;
-        private SerializedProperty ProfilerModeDensityList;
+        // private SerializedProperty ProfilerModeDensityList;
         // private SerializedProperty HeatMapTex;
         private int HeatMapRange;
         private int HeatMapStep;
@@ -53,7 +54,7 @@ namespace VertexProfilerTool
         private float HeatMapRampMin;
         private float HeatMapRampMax;
 
-        private SerializedProperty NeedSyncColorRangeSetting;
+        // private SerializedProperty NeedSyncColorRangeSetting;
         private SerializedProperty NeedUpdateUITileGrid;
         private SerializedProperty NeedRecollectRenderers;
         private SerializedProperty NeedLogOutProfilerData;
@@ -140,6 +141,9 @@ namespace VertexProfilerTool
             {
                 VertexProfilerEvent.LogoutToExcelEvent += ProfilerWriter.LogoutToExcel;
             }
+
+            InitCamera();
+            EditorApplication.update += UpdateCameraPos;
         }
 
         private void OnDisable()
@@ -148,6 +152,29 @@ namespace VertexProfilerTool
             {
                 VertexProfilerEvent.LogoutToExcelEvent -= ProfilerWriter.LogoutToExcel;
             }
+            
+            EditorApplication.update -= UpdateCameraPos;
+        }
+
+        internal void InitCamera()
+        {
+	        if (MainCamera == null)
+	        {
+		        MainCamera = Camera.main;
+	        }
+        }
+        
+        void UpdateCameraPos()
+        {
+	        if (SyncSceneCameraToMainCamera && !Application.isPlaying)
+	        {
+		        var sceneView = SceneView.lastActiveSceneView;
+		        if (sceneView != null && MainCamera != null)
+		        {
+			        MainCamera.transform.rotation = sceneView.rotation;
+			        MainCamera.transform.position = sceneView.pivot - MainCamera.transform.forward * sceneView.cameraDistance;
+		        }
+	        }
         }
 
         private void InitGUIStyle()
@@ -308,11 +335,11 @@ namespace VertexProfilerTool
             // serializedObject = new SerializedObject(vertexProfilerBase);
             if (serializedObject != null)
             {
-                SyncSceneCameraToMainCamera = serializedObject.FindProperty("SyncSceneCameraToMainCamera");
+                // SyncSceneCameraToMainCamera = serializedObject.FindProperty("SyncSceneCameraToMainCamera");
                 TileWidth = VertexProfilerRendererFeature.settings.TileWidth;
                 TileHeight = VertexProfilerRendererFeature.settings.TileHeight;
                 // EnableProfiler = serializedObject.FindProperty("EnableProfiler");
-                EProfilerType = serializedObject.FindProperty("EProfilerType");
+                // EProfilerType = VertexProfilerRendererFeature.settings.profilerType;
                 // EUpdateType = serializedObject.FindProperty("EUpdateType");
                 // EDisplayType = serializedObject.FindProperty("EDisplayType");
                 // HeatMapTex = serializedObject.FindProperty("HeatMapTex");
@@ -323,8 +350,8 @@ namespace VertexProfilerTool
                 HeatMapRampMin = VertexProfilerRendererFeature.settings.HeatMapRampMin;
                 HeatMapRampMax = VertexProfilerRendererFeature.settings.HeatMapRampMax;
                 
-                ProfilerModeDensityList = serializedObject.FindProperty("DensityList");
-                NeedSyncColorRangeSetting = serializedObject.FindProperty("NeedSyncColorRangeSetting");
+                // ProfilerModeDensityList = serializedObject.FindProperty("DensityList");
+                // NeedSyncColorRangeSetting = serializedObject.FindProperty("NeedSyncColorRangeSetting");
 
                 NeedUpdateUITileGrid = serializedObject.FindProperty("NeedUpdateUITileGrid");
                 NeedRecollectRenderers = serializedObject.FindProperty("NeedRecollectRenderers");
@@ -367,20 +394,20 @@ namespace VertexProfilerTool
             serializedObject.Update();
 
             GUI.backgroundColor = Color.red;
-            EditorGUI.BeginChangeCheck();
-            int newProfileType = GUILayout.Toolbar(EProfilerType.enumValueIndex, new string[] { "简易模式", "详细模式" },
-                GUILayout.Height(25));
-            if(EditorGUI.EndChangeCheck())
-            {
-                // 如果枚举的值已经被修改，更新SerializedProperty的值
-                EProfilerType.enumValueIndex = newProfileType;
-                serializedObject.ApplyModifiedProperties();
-                ChangeProfilerType(newProfileType);
-                
-                serializedObject.Update();
-                needUpdateColumnData = true;
-                logTickTimer = Mathf.Max(0.99f, logTickTimer); // 保证下一次刷新不会隔太久
-            }
+            // EditorGUI.BeginChangeCheck();
+            // int newProfileType = GUILayout.Toolbar((int)EProfilerType, new string[] { "简易模式", "详细模式" }, GUILayout.Height(25));
+            // if(EditorGUI.EndChangeCheck())
+            // {
+            //     // 如果枚举的值已经被修改，更新SerializedProperty的值
+            //     EProfilerType = (ProfilerType)newProfileType;
+            //     VertexProfilerRendererFeature.settings.profilerType = EProfilerType;
+            //     serializedObject.ApplyModifiedProperties();
+            //     ChangeProfilerType();
+            //     
+            //     serializedObject.Update();
+            //     needUpdateColumnData = true;
+            //     logTickTimer = Mathf.Max(0.99f, logTickTimer); // 保证下一次刷新不会隔太久
+            // }
             GUI.backgroundColor = Color.white;
             
             
@@ -410,14 +437,14 @@ namespace VertexProfilerTool
             }
             EditorGUILayout.Space();
             
-            EditorGUILayout.PropertyField(SyncSceneCameraToMainCamera, c_SyncSceneCameraToMainCamera);
+            SyncSceneCameraToMainCamera = EditorGUILayout.Toggle(c_SyncSceneCameraToMainCamera, SyncSceneCameraToMainCamera);
+
             EditorGUILayout.Space();
 
             EditorGUI.BeginChangeCheck();
             EDisplayType = (DisplayType)EditorGUILayout.EnumPopup(c_EDisplayType, EDisplayType);
             if (EditorGUI.EndChangeCheck())
             {
-                NeedSyncColorRangeSetting.boolValue = true;
                 serializedObject.ApplyModifiedProperties();
                 CheckProfilerMode();
                 serializedObject.Update();
@@ -445,21 +472,19 @@ namespace VertexProfilerTool
                         vertexProfilerURP.SetTileNumShow(HideTileNum);
                     }
                 }
+
                 EditorGUILayout.EndHorizontal();
 
-                if (EProfilerType.enumValueIndex == (int)ProfilerType.Detail)
-                {
-                    EditorGUI.BeginChangeCheck();
-                    TileWidth = EditorGUILayout.IntSlider(c_TileWidth, TileWidth, 32, 128);
-                    TileHeight = EditorGUILayout.IntSlider(c_TileHeight, TileHeight, 32, 128);
-                    if (EditorGUI.EndChangeCheck())
-                    {
-	                    VertexProfilerRendererFeature.settings.TileWidth = TileWidth;
-	                    VertexProfilerRendererFeature.settings.TileHeight = TileHeight;
-                        NeedUpdateUITileGrid.boolValue = true;
-                        needUpdateColumnData = true;
-                    }
-                }
+                // EditorGUI.BeginChangeCheck();
+                // TileWidth = EditorGUILayout.IntSlider(c_TileWidth, TileWidth, 32, 128);
+                // TileHeight = EditorGUILayout.IntSlider(c_TileHeight, TileHeight, 32, 128);
+                // if (EditorGUI.EndChangeCheck())
+                // {
+	               //  VertexProfilerRendererFeature.settings.TileWidth = TileWidth;
+	               //  VertexProfilerRendererFeature.settings.TileHeight = TileHeight;
+	               //  NeedUpdateUITileGrid.boolValue = true;
+	               //  needUpdateColumnData = true;
+                // }
             }
             EditorGUILayout.Space();
             
@@ -502,7 +527,7 @@ namespace VertexProfilerTool
                 || EDisplayType == DisplayType.TileBasedMesh
                 || EDisplayType == DisplayType.Overdraw)
             {
-                DrawDensitySetting(ProfilerModeDensityList);
+                DrawDensitySetting();
             }
             if (EDisplayType == DisplayType.MeshHeatMap)
             {
@@ -582,143 +607,145 @@ namespace VertexProfilerTool
             // 这个一定要放最后
             serializedObject.ApplyModifiedProperties();
         }
-        
-        private void DrawDensitySetting(SerializedProperty targetList)
+
+        private void DrawDensitySetting()
         {
-            EditorGUI.BeginChangeCheck();
-            // EditorGUILayout.PropertyField(targetList, content, true);
-            ProfilerType profilerType = (ProfilerType)EProfilerType.enumValueIndex;
-            int listSize = targetList.arraySize;
-            if (listSize > 0)
-            {
-                SerializedProperty lastProperty  = targetList.GetArrayElementAtIndex(listSize - 1);
-                int sliderMax = lastProperty.intValue;
-                
-                for (int i = 0; i < targetList.arraySize; i++)
-                {
-                    SerializedProperty floatProperty = targetList.GetArrayElementAtIndex(i);
+	        ref List<int> colorSetting = ref VertexProfilerRendererFeature.settings.OnlyTileDensitySetting;
+	        switch (EDisplayType)
+	        {
+		        case DisplayType.OnlyMesh:
+			        colorSetting = ref VertexProfilerRendererFeature.settings.OnlyMeshDensitySetting;
+			        break;
+		        case DisplayType.OnlyTile:
+			        colorSetting = ref VertexProfilerRendererFeature.settings.OnlyTileDensitySetting;
+			        break;
+		        case DisplayType.TileBasedMesh:
+			        colorSetting = ref VertexProfilerRendererFeature.settings.TileBasedMeshDensitySetting;
+			        break;
+		        case DisplayType.MeshHeatMap:
+			        colorSetting = ref VertexProfilerRendererFeature.settings.MeshHeatMapSetting;
+			        break;
+		        case DisplayType.Overdraw:
+			        colorSetting = ref VertexProfilerRendererFeature.settings.OverdrawDensitySetting;
+			        break;
+	        }
 
-                    Color color = VertexProfilerUtil.GetProfilerColor(i, profilerType);
-                    bool showDensityColor = color.a > 0f;
-                    // 用作展示的颜色不考虑透明度（有可能没必要有这一段，先加上）
-                    Color colorGamma = color.gamma;
-                    colorGamma.a = 1.0f;
-                    EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField(string.Format("阈值{0}", i+1), GUILayout.Width(50));
-                    EditorGUI.BeginDisabledGroup(true);
-                    EditorGUILayout.ColorField(new GUIContent(), colorGamma, false, false, false, GUILayout.Width(60));
-                    bool isLastElement = i == targetList.arraySize - 1;
-                    var settingUnit = profilerSettingUnitDict.ContainsKey((int)EDisplayType)
-                        ? profilerSettingUnitDict[(int)EDisplayType]
-                        : new GUIContent("这里单位漏了"); 
-                    if (profilerType == ProfilerType.Simple)
-                    {
-                        if (isLastElement)
-                        {
-                            EditorGUILayout.PropertyField(floatProperty, new GUIContent(""));
-                            EditorGUILayout.LabelField(settingUnit,GUILayout.MaxWidth(100));
-                        }
-                        else
-                        {
-                            EditorGUILayout.IntSlider(floatProperty, 0, sliderMax, new GUIContent(""));
-                            EditorGUILayout.LabelField(settingUnit,GUILayout.MaxWidth(100));
-                        }
-                        EditorGUI.EndDisabledGroup();
-                    }
-                    else if (profilerType == ProfilerType.Detail)
-                    {
-                        EditorGUI.EndDisabledGroup();
-                        if (isLastElement)
-                        {
-                            EditorGUILayout.PropertyField(floatProperty, new GUIContent(""));
-                            EditorGUILayout.LabelField(settingUnit,GUILayout.MaxWidth(100));
-                        }
-                        else
-                        {
-                            EditorGUILayout.IntSlider(floatProperty, 0, sliderMax, new GUIContent(""));
-                            EditorGUILayout.LabelField(settingUnit,GUILayout.MaxWidth(100));
-                        }
-                    }
-                    // 是否显示该颜色区间
-                    bool curShowDensityColor = EditorGUILayout.ToggleLeft(new GUIContent("显示区间"), showDensityColor, GUILayout.Width(80));
-                    if (curShowDensityColor != showDensityColor)
-                    {
-                        VertexProfilerUtil.ActivateProfilerColor(i, profilerType, curShowDensityColor);
-                    }
-                    EditorGUILayout.EndHorizontal();
-                }
-            }
+	        if (colorSetting == null)
+		        return;
 
-            if (targetList.arraySize < MaxDataCount)
-            {
-                if (GUILayout.Button("新增阈值"))
-                {
-                    AddData(targetList);
-                }
-            }
-            if (GUILayout.Button("移除阈值") && targetList.arraySize > 0)
-            {
-                RemoveLastData(targetList);
-            }
-            if (EditorGUI.EndChangeCheck())
-            {
-                CheckAndUpdateDataRange(targetList);
-                NeedSyncColorRangeSetting.boolValue = true;
-                needUpdateColumnData = true;
-            }
+	        // ProfilerType profilerType = EProfilerType;
+	        var lastProperty = colorSetting[^1];
+	        int sliderMax = lastProperty;
+
+	        for (int i = 0; i < colorSetting.Count; i++)
+	        {
+		        var floatProperty = colorSetting[i];
+
+		        Color color = VertexProfilerUtil.GetProfilerColor(i);
+		        bool showDensityColor = color.a > 0f;
+		        // 用作展示的颜色不考虑透明度（有可能没必要有这一段，先加上）
+		        Color colorGamma = color.gamma;
+		        colorGamma.a = 1.0f;
+		        EditorGUILayout.BeginHorizontal();
+		        EditorGUILayout.LabelField(string.Format("阈值{0}", i + 1), GUILayout.Width(50));
+		        EditorGUI.BeginDisabledGroup(true);
+		        EditorGUILayout.ColorField(new GUIContent(), colorGamma, false, false, false, GUILayout.Width(60));
+		        bool isLastElement = i == colorSetting.Count - 1;
+		        var settingUnit = profilerSettingUnitDict.ContainsKey((int)EDisplayType)
+				        ? profilerSettingUnitDict[(int)EDisplayType]
+				        : new GUIContent("这里单位漏了");
+
+		        EditorGUI.EndDisabledGroup();
+		        if (isLastElement)
+		        {
+			        floatProperty = (int)EditorGUILayout.FloatField(new GUIContent(""), floatProperty);
+			        EditorGUILayout.LabelField(settingUnit, GUILayout.MaxWidth(100));
+		        }
+		        else
+		        {
+			        floatProperty = EditorGUILayout.IntSlider("", floatProperty, 0, sliderMax);
+			        EditorGUILayout.LabelField(settingUnit, GUILayout.MaxWidth(100));
+		        }
+
+		        // 是否显示该颜色区间
+		        bool curShowDensityColor = EditorGUILayout.ToggleLeft(new GUIContent("显示区间"), showDensityColor, GUILayout.Width(80));
+		        if (curShowDensityColor != showDensityColor)
+		        {
+			        VertexProfilerUtil.ActivateProfilerColor(i, curShowDensityColor);
+		        }
+
+		        EditorGUILayout.EndHorizontal();
+
+		        colorSetting[i] = floatProperty;
+	        }
+	        
+	        if (colorSetting.Count < MaxDataCount)
+	        {
+		        if (GUILayout.Button("新增阈值"))
+		        {
+			        AddData(colorSetting);
+		        }
+	        }
+	        if (GUILayout.Button("移除阈值") && colorSetting.Count > 0)
+	        {
+		        RemoveLastData(colorSetting);
+	        }
+	        if (EditorGUI.EndChangeCheck())
+	        {
+		        CheckAndUpdateDataRange(colorSetting);
+		        needUpdateColumnData = true;
+	        }
             
-            if (GUILayout.Button("重置默认阈值"))
-            {
-                UseDefaultColorRangeSetting();
-                serializedObject.ApplyModifiedProperties();
-                serializedObject.Update();
-            }
+	        if (GUILayout.Button("重置默认阈值"))
+	        {
+		        UseDefaultColorRangeSetting();
+		        serializedObject.ApplyModifiedProperties();
+		        serializedObject.Update();
+	        }
         }
-        private void AddData(SerializedProperty targetList)
+        
+        private void AddData(List<int> targetList)
         {
-            // 插入新值
-            targetList.InsertArrayElementAtIndex(targetList.arraySize);
-            serializedObject.ApplyModifiedProperties();
+	        // 插入新值
+	        targetList.Add(0);
 
-            // 设置默认值
-            targetList.GetArrayElementAtIndex(targetList.arraySize - 1).intValue = 0;
-
-            // 如果存在上一条数据，则新插入的这条数据的值不可以小于上一条数据
-            if (targetList.arraySize > 1)
-            {
-                int previousValue = targetList.GetArrayElementAtIndex(targetList.arraySize - 2).intValue;
-                targetList.GetArrayElementAtIndex(targetList.arraySize - 1).intValue = Mathf.Max(0, previousValue);
-            }
+	        // 如果存在上一条数据，则新插入的这条数据的值不可以小于上一条数据
+	        if (targetList.Count > 1)
+	        {
+		        int previousValue = targetList[^2];
+		        targetList[^1] = Mathf.Max(0, previousValue);
+	        }
         }
-
-        private void RemoveLastData(SerializedProperty targetList)
+        
+        private void RemoveLastData(List<int> targetList)
         {
-            targetList.DeleteArrayElementAtIndex(targetList.arraySize - 1);
-            serializedObject.ApplyModifiedProperties();
+	        targetList.RemoveAt(targetList.Count - 1);
         }
         
         // 数据实时范围检查，不可以低于上一条的设置也不可以超过下一条的设置（如果存在的话）
-        private void CheckAndUpdateDataRange(SerializedProperty targetList)
+        private void CheckAndUpdateDataRange(List<int> targetList)
         {
-            for (int i = 0; i < targetList.arraySize; i++)
-            {
-                SerializedProperty element = targetList.GetArrayElementAtIndex(i);
-                // 顶点数一定要大于0
-                element.intValue = Mathf.Max(element.intValue, 0);
-                // 与上一条比较
-                if (i > 0)
-                {
-                    int previousValue = targetList.GetArrayElementAtIndex(i - 1).intValue;
-                    element.intValue = Mathf.Max(element.intValue, previousValue);
-                }
+	        for (int i = 0; i < targetList.Count; i++)
+	        {
+		        var element = targetList[i];
+		        // 顶点数一定要大于0
+		        element = Mathf.Max(element, 0);
+		        // 与上一条比较
+		        if (i > 0)
+		        {
+			        int previousValue = targetList[i - 1];
+			        element = Mathf.Max(element, previousValue);
+		        }
 
-                // 与下一条比较
-                if (i < targetList.arraySize - 1)
-                {
-                    int nextValue = targetList.GetArrayElementAtIndex(i + 1).intValue;
-                    element.intValue = Mathf.Min(element.intValue, nextValue);
-                }
-            }
+		        // 与下一条比较
+		        if (i < targetList.Count - 1)
+		        {
+			        int nextValue = targetList[i + 1];
+			        element = Mathf.Min(element, nextValue);
+		        }
+		        
+		        targetList[i] = element; 
+	        }
         }
 
         /// <summary>
@@ -1108,9 +1135,9 @@ namespace VertexProfilerTool
             MergeThresholdListToTreeList(ref Id);
         }
 
-        private void ChangeProfilerType(int newProfileType)
+        private void ChangeProfilerType()
         {
-	        vertexProfilerURP.ChangeProfilerType(newProfileType);
+	        vertexProfilerURP.ProfilerMode?.CheckColorRangeData();
         }
 
         private void StartProfiler()
@@ -1126,7 +1153,6 @@ namespace VertexProfilerTool
 
         private void CheckProfilerMode()
         {
-	        vertexProfilerURP.EDisplayType = EDisplayType;
 	        vertexProfilerURP.CheckShowUIGrid(EDisplayType, HideGoTUITile);
 	        VertexProfilerRendererFeature.displayType = EDisplayType;
         }

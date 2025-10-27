@@ -75,32 +75,24 @@ namespace VertexProfilerTool
 
         public override void UseDefaultColorRangeSetting()
         {
-            VertexProfilerUtil.OverdrawDensitySetting = new List<int>(VertexProfilerUtil.DefaultOverdrawDensitySetting);
+            m_Settings.OverdrawDensitySetting = new List<int>(VertexProfilerUtil.DefaultOverdrawDensitySetting);
             DensityList.Clear();
             NeedSyncColorRangeSetting = true;
             CheckColorRangeData();
         }
         public override void CheckColorRangeData(bool forceReload = false)
         {
-            if (DensityList.Count <= 0 || forceReload) 
-            {
-                DensityList.Clear();
-                if (EProfilerType == ProfilerType.Simple)
-                {
-                    foreach (int v in VertexProfilerUtil.SimpleModeOverdrawDensitySetting)
-                    {
-                        DensityList.Add(v);
-                    }
-                }
-                else if (EProfilerType == ProfilerType.Detail)
-                {
-                    foreach (int v in VertexProfilerUtil.OverdrawDensitySetting)
-                    {
-                        DensityList.Add(v);
-                    }
-                }
-                NeedSyncColorRangeSetting = true;
-            }
+	        if (DensityList.Count <= 0 || forceReload)
+	        {
+		        DensityList.Clear();
+
+		        foreach (int v in m_Settings.OverdrawDensitySetting)
+		        {
+			        DensityList.Add(v);
+		        }
+
+		        NeedSyncColorRangeSetting = true;
+	        }
             // 检查是否要同步设置
             if (NeedSyncColorRangeSetting)
             {
@@ -108,7 +100,7 @@ namespace VertexProfilerTool
                 for (int i = 0; i < DensityList.Count; i++)
                 {
                     float threshold = DensityList[i];
-                    Color color = VertexProfilerUtil.GetProfilerColor(i, EProfilerType);
+                    Color color = VertexProfilerUtil.GetProfilerColor(i);
                     ColorRangeSetting setting = new ColorRangeSetting();
                     setting.threshold = threshold;
                     setting.color = color;
@@ -170,9 +162,11 @@ namespace VertexProfilerTool
         {
             base.SetupConstantBufferData(cmd, ref context, ref renderingData);
 
-            ReAllocTileProfilerRT(GraphicsFormat.None, GraphicsFormat.D24_UNorm, FilterMode.Point, ref m_OutputOverdrawDepthRT, "m_OutputOverdrawDepthRT", false);
-            ReAllocTileProfilerRT(GraphicsFormat.R32G32_SFloat, GraphicsFormat.None, FilterMode.Point, ref m_OutputOverdrawRT, "m_OutputOverdrawRT");
-            ReAllocTileProfilerRT(GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, FilterMode.Point, ref m_TileProfilerRT, "m_TileProfilerRT");
+            int width = renderingData.cameraData.camera.pixelWidth;
+            int height = renderingData.cameraData.camera.pixelHeight;
+            ReAllocTileProfilerRT(width, height, GraphicsFormat.None, GraphicsFormat.D24_UNorm, FilterMode.Point, ref m_OutputOverdrawDepthRT, "m_OutputOverdrawDepthRT", false);
+            ReAllocTileProfilerRT(width, height, GraphicsFormat.R32G32_SFloat, GraphicsFormat.None, FilterMode.Point, ref m_OutputOverdrawRT, "m_OutputOverdrawRT");
+            ReAllocTileProfilerRT(width, height, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, FilterMode.Point, ref m_TileProfilerRT, "m_TileProfilerRT");
             
             cmd.SetComputeIntParam(GenerateProfilerRTCS, VertexProfilerUtil._ColorRangeSettingCount, m_ColorRangeSettings.Length);
             cmd.SetComputeBufferParam(GenerateProfilerRTCS, GenerateProfilerKernel, VertexProfilerUtil._ColorRangeSetting, m_ColorRangeSettingBuffer);

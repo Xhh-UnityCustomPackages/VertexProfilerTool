@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using System;
+using System.Collections.Generic;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -16,7 +17,6 @@ namespace VertexProfilerTool
 		{
 			[SerializeField] public VertexProfilerRendererFeatureData m_FeatureData;
 			public DisplayType displayType = DisplayType.None;
-			
 			[Range(32, 128)]
 			public int TileWidth = 100;
 			[Range(32, 128)]
@@ -39,6 +39,12 @@ namespace VertexProfilerTool
 			public float HeatMapRampMin = 0.0f;
 			[Range(0.01f, 1.0f)]
 			public float HeatMapRampMax = 1.0f;
+			
+			public List<int> OnlyTileDensitySetting = new List<int>(VertexProfilerUtil.DefaultOnlyTileDensitySetting);
+			public List<int> OnlyMeshDensitySetting = new List<int>(VertexProfilerUtil.DefaultOnlyMeshDensitySetting);
+			public List<int> TileBasedMeshDensitySetting = new List<int>(VertexProfilerUtil.DefaultOnlyMeshDensitySetting);
+			public List<int> MeshHeatMapSetting = new List<int>(VertexProfilerUtil.DefaultMeshHeatMapSetting);
+			public List<int> OverdrawDensitySetting = new List<int>(VertexProfilerUtil.DefaultOverdrawDensitySetting);
 		}
 		
 		[SerializeField] 
@@ -153,14 +159,14 @@ namespace VertexProfilerTool
 		{
 			m_ScriptablePass?.OnDisable();
 			m_LogPass?.OnDisable();
+			m_PostEffectPass?.OnDisable();
 		}
 		
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing)
 			{
-				m_ScriptablePass?.OnDisable();
-				m_LogPass?.OnDisable();
+				OnDisable();
 
 				m_PostEffectPass = null;
 				m_ScriptablePass = null;

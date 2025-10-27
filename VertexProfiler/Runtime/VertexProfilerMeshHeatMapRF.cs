@@ -94,25 +94,17 @@ namespace VertexProfilerTool
         
         public override void CheckColorRangeData(bool forceReload = false)
         {
-            if (DensityList.Count <= 0 || forceReload) 
-            {
-                DensityList.Clear();
-                if (EProfilerType == ProfilerType.Simple)
-                {
-                    foreach (int v in VertexProfilerUtil.SimpleModeMeshHeatMapSetting)
-                    {
-                        DensityList.Add(v);
-                    }
-                }
-                else if (EProfilerType == ProfilerType.Detail)
-                {
-                    foreach (int v in VertexProfilerUtil.MeshHeatMapSetting)
-                    {
-                        DensityList.Add(v);
-                    }
-                }
-                NeedSyncColorRangeSetting = true;
-            }
+	        if (DensityList.Count <= 0 || forceReload)
+	        {
+		        DensityList.Clear();
+
+		        foreach (int v in VertexProfilerUtil.MeshHeatMapSetting)
+		        {
+			        DensityList.Add(v);
+		        }
+
+		        NeedSyncColorRangeSetting = true;
+	        }
             // 检查是否要同步设置
             if (NeedSyncColorRangeSetting)
             {
@@ -120,7 +112,7 @@ namespace VertexProfilerTool
                 for (int i = 0; i < DensityList.Count; i++)
                 {
                     float threshold = DensityList[i] * 0.0001f;
-                    Color color = VertexProfilerUtil.GetProfilerColor(i, EProfilerType);
+                    Color color = VertexProfilerUtil.GetProfilerColor(i);
                     ColorRangeSetting setting = new ColorRangeSetting();
                     setting.threshold = threshold;
                     setting.color = color;
@@ -213,11 +205,13 @@ namespace VertexProfilerTool
             m_RendererBoundsNA.Dispose();
             VisibleFlagNA.Dispose();
             
-            ReAllocTileProfilerRT(GraphicsFormat.None, GraphicsFormat.D24_UNorm, FilterMode.Point, ref m_OutputRenderIdDepthRT, "m_OutputRenderIdDepthRT", false);
-            ReAllocTileProfilerRT(GraphicsFormat.R32G32_SFloat, GraphicsFormat.None, FilterMode.Point, ref m_OutputRenderIdRT, "m_OutputRenderIdRT");
-            ReAllocTileProfilerRT(GraphicsFormat.R32_UInt, GraphicsFormat.None, FilterMode.Point, ref m_TileProfilerUIntRT, "m_TileProfilerUIntRT");
-            ReAllocTileProfilerRT(GraphicsFormat.R32G32_UInt, GraphicsFormat.None, FilterMode.Point, ref m_TileProfilerUInt2RT, "m_TileProfilerUInt2RT");
-            ReAllocTileProfilerRT(GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, FilterMode.Point, ref m_TileProfilerRT, "m_TileProfilerRT");
+            int width = camera.pixelWidth;
+            int height = camera.pixelHeight;
+            ReAllocTileProfilerRT(width, height, GraphicsFormat.None, GraphicsFormat.D24_UNorm, FilterMode.Point, ref m_OutputRenderIdDepthRT, "m_OutputRenderIdDepthRT", false);
+            ReAllocTileProfilerRT(width, height, GraphicsFormat.R32G32_SFloat, GraphicsFormat.None, FilterMode.Point, ref m_OutputRenderIdRT, "m_OutputRenderIdRT");
+            ReAllocTileProfilerRT(width, height, GraphicsFormat.R32_UInt, GraphicsFormat.None, FilterMode.Point, ref m_TileProfilerUIntRT, "m_TileProfilerUIntRT");
+            ReAllocTileProfilerRT(width, height, GraphicsFormat.R32G32_UInt, GraphicsFormat.None, FilterMode.Point, ref m_TileProfilerUInt2RT, "m_TileProfilerUInt2RT");
+            ReAllocTileProfilerRT(width, height, GraphicsFormat.R8G8B8A8_UNorm, GraphicsFormat.None, FilterMode.Point, ref m_TileProfilerRT, "m_TileProfilerRT");
             
             cmd.SetComputeMatrixParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_MATRIX_VP, m_vp);
             cmd.SetComputeIntParam(CalculateVertexByTilesCS, VertexProfilerUtil._UNITY_REVERSED_Z, SystemInfo.usesReversedZBuffer ? 1 : 0);

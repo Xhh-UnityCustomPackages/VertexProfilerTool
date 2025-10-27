@@ -42,18 +42,6 @@ namespace VertexProfilerTool
         None,
     }
     
-    // 调试类型
-    public enum ProfilerType
-    {
-        /// <summary>
-        /// 简单模式。适合给美术童鞋，简化调节阈值数量为3个且不再暴露调节GUI，阈值颜色固定为 绿 黄 红 三色
-        /// </summary>
-        Simple,
-        /// <summary>
-        /// 详细模式。适合项目运行时查看，细化调节阈值8个档位
-        /// </summary>
-        Detail
-    }
     public struct RendererBoundsData
     {
         public Vector3 center; // 包围盒世界空间位置，用于剔除
@@ -347,7 +335,6 @@ namespace VertexProfilerTool
             10000,
             12000
         };
-        public static List<int> OnlyTileDensitySetting = new List<int>(DefaultOnlyTileDensitySetting);
         
         // 默认的 mesh顶点/mesh占用像素密度阈值设置，单位 mesh顶点数/1万像素 (简单模式)
         public static readonly int[] SimpleModeOnlyMeshDensitySetting = new int[3]
@@ -368,7 +355,6 @@ namespace VertexProfilerTool
             10000,
             12000
         };
-        public static List<int> OnlyMeshDensitySetting = new List<int>(DefaultOnlyMeshDensitySetting);
         
         // 默认的 mesh顶点/mesh占用像素密度阈值设置，单位 mesh顶点数/1万像素 (简单模式)
         public static readonly int[] SimpleModeTileBasedMeshDensitySetting = new int[3]
@@ -389,7 +375,6 @@ namespace VertexProfilerTool
             10000,
             12000
         };
-        public static List<int> TileBasedMeshDensitySetting = new List<int>(DefaultTileBasedMeshDensitySetting);
 
         // 默认的 mesh顶点/mesh占用像素密度阈值设置，单位 mesh顶点数/1万像素 (简单模式)
         public static readonly int[] SimpleModeMeshHeatMapSetting = new int[3]
@@ -431,15 +416,7 @@ namespace VertexProfilerTool
             7,
             8
         };
-        public static List<int> OverdrawDensitySetting = new List<int>(DefaultOverdrawDensitySetting);
         
-        // 阈值颜色设置 (简单模式)
-        public static Color[] SimpleModeProfilerColor = new Color[3]
-        {
-            new Color(0, 1, 0, 1),
-            new Color(1, 1, 0, 1),
-            new Color(1, 0, 0, 1),
-        };
         // 阈值颜色设置 (详细模式)
         public static Color[] DefaultProfilerColor = new Color[8]
         {
@@ -453,26 +430,18 @@ namespace VertexProfilerTool
             new Color(1, 0, 0, 1),
         };
 
-        public static Color GetProfilerColor(int index, ProfilerType profilerType)
+        public static Color GetProfilerColor(int index)
         {
-            if (profilerType == ProfilerType.Simple && index < SimpleModeProfilerColor.Length)
-            {
-                return SimpleModeProfilerColor[index];
-            }
-            if (profilerType == ProfilerType.Detail && index < DefaultProfilerColor.Length)
+            if (index < DefaultProfilerColor.Length)
             {
                 return DefaultProfilerColor[index];
             }
             return Color.black;
         }
 
-        public static void ActivateProfilerColor(int index, ProfilerType profilerType, bool activate)
+        public static void ActivateProfilerColor(int index, bool activate)
         {
-            if (profilerType == ProfilerType.Simple && index < SimpleModeProfilerColor.Length)
-            {
-                SimpleModeProfilerColor[index].a = activate ? 1.0f : 0.0f;
-            }
-            if (profilerType == ProfilerType.Detail && index < DefaultProfilerColor.Length)
+            if (index < DefaultProfilerColor.Length)
             {
                 DefaultProfilerColor[index].a = activate ? 1.0f : 0.0f;
             }
