@@ -18,8 +18,10 @@ namespace VertexProfilerTool
 			[SerializeField] public VertexProfilerRendererFeatureData m_FeatureData;
 			public DisplayType displayType = DisplayType.None;
 			[Range(32, 128)]
+			[HideInInspector]
 			public int TileWidth = 100;
 			[Range(32, 128)]
+			[HideInInspector]
 			public int TileHeight = 100;
 			
 			// 热力图参数
@@ -109,7 +111,7 @@ namespace VertexProfilerTool
 			if (m_Settings.m_FeatureData == null)
 			{
 #if UNITY_EDITOR
-				m_Settings.m_FeatureData = AssetDatabase.LoadAssetAtPath<VertexProfilerRendererFeatureData>("Assets/VertexProfiler/URP/Script/Data/VertexProfilerRendererFeatureData.asset");
+				m_Settings.m_FeatureData = AssetDatabase.LoadAssetAtPath<VertexProfilerRendererFeatureData>("Packages/com.game.tool-vertexprofiler/Runtime/Data/VertexProfilerRendererFeatureData.asset");
 #endif
 				return;
 			}
